@@ -3,6 +3,7 @@ import {
   LayoutDashboard, FilePlus2, ScrollText, TrendingUp, TrendingDown,
   DollarSign, Anchor, BarChart3, FileCheck2, ShieldAlert, Globe,
   Activity, Layers, Lightbulb, Users, User, LogOut, Moon, Sun,
+  FileSpreadsheet, RefreshCw, ClipboardList,
 } from 'lucide-react';
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
@@ -26,8 +27,11 @@ import Pricing      from './modules/Pricing.jsx';
 import PnL          from './modules/PnL.jsx';
 import LCChecker    from './modules/LCChecker.jsx';
 import RiskMatrix   from './modules/RiskMatrix.jsx';
-import Resources    from './modules/Resources.jsx';
-import Spreads      from './modules/Spreads.jsx';
+import Resources     from './modules/Resources.jsx';
+import Spreads       from './modules/Spreads.jsx';
+import PlattsImport  from './modules/PlattsImport.jsx';
+import Rolling       from './modules/Rolling.jsx';
+import Documents     from './modules/Documents.jsx';
 
 // ── Dark mode initialisation synchrone (évite le flash) ──────────
 function getInitialDarkMode() {
@@ -225,8 +229,11 @@ export default function TradingPlatform() {
     { id: 'pnl',       label: 'P&L',              icon: BarChart3,       section: 'tools' },
     { id: 'lc',        label: 'LC Checker',        icon: FileCheck2,      section: 'tools' },
     { id: 'risk',      label: 'Risques',           icon: ShieldAlert,     section: 'tools' },
-    { id: 'spreads',   label: 'Spreads',           icon: TrendingUp,      section: 'tools' },
-    { id: 'resources', label: 'Hub Ressources',    icon: Globe,           section: 'hub' },
+    { id: 'spreads',  label: 'Spreads',           icon: TrendingUp,      section: 'tools' },
+    { id: 'rolling',  label: 'Rolling',           icon: RefreshCw,       section: 'tools' },
+    { id: 'platts',   label: 'Import Platts',     icon: FileSpreadsheet, section: 'tools' },
+    { id: 'documents', label: 'Procédures & Docs', icon: ClipboardList,   section: 'docs' },
+    { id: 'resources', label: 'Hub Ressources',   icon: Globe,           section: 'hub' },
     { id: 'profile',   label: 'Mon profil',        icon: User,            section: 'account' },
     ...(isAdmin ? [{ id: 'users', label: 'Utilisateurs', icon: Users, section: 'account' }] : []),
   ];
@@ -235,6 +242,7 @@ export default function TradingPlatform() {
     main:    { label: "Marché & vue d'ensemble" },
     deals:   { label: 'Mes opérations' },
     tools:   { label: 'Outils' },
+    docs:    { label: 'Procédures & Documents' },
     hub:     { label: 'Ressources externes' },
     account: { label: 'Compte' },
   };
@@ -335,6 +343,11 @@ export default function TradingPlatform() {
             {activeTab === 'lc'        && <LCChecker />}
             {activeTab === 'risk'      && <RiskMatrix deals={deals} />}
             {activeTab === 'spreads'   && <Spreads />}
+            {activeTab === 'rolling'   && <Rolling deals={deals} />}
+            {activeTab === 'platts'    && (
+              <PlattsImport setMarketPrice={setMarketPrice} marketPrices={marketPrices} />
+            )}
+            {activeTab === 'documents' && <Documents deals={deals} />}
             {activeTab === 'resources' && <Resources />}
             {activeTab === 'profile'   && (
               <MyProfile currentUser={currentUser} onRestoreDeals={restoreDeals} />
