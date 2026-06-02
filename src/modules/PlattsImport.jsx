@@ -7,12 +7,41 @@ import {
 import { Card, CardHeader, CardBody, Field, Select, Button } from '../components/UI.jsx';
 import { fmt, todayISO } from '../utils.js';
 
+// ── Platts code → internal PLATTS_COLS code (canonical normalization) ──
+// Les codes du fichier réel AMKO (PCAAS00-PLM, AAVJI00-PLM, etc.)
+const PLATTS_CODE_NORM = {
+  'PCAAS00': 'PCAAS00', 'PCAAS00-PLM': 'PCAAS00',
+  'AAWZB00': 'AAWZB00', 'AAWZB00-PLM': 'AAWZB00',
+  'GAS 1!-ICE': 'GAS1',  'GAS 1!': 'GAS1', 'GAS1': 'GAS1',
+  'AAVJI00': 'AAVJI00', 'AAVJI00-PLM': 'AAVJI00',
+  'PJAAU00': 'PJAAU00', 'PJAAU00-PLM': 'PJAAU00',
+  'AAIDL00': 'AAIDL00', 'AAIDL00-PLM': 'AAIDL00',
+  'PUAAK00': 'PUAAK00', 'PUAAK00-PLM': 'PUAAK00',
+  'PUAAL00': 'PUAAL00', 'PUAAL00-PLM': 'PUAAL00',
+  'PUABA00': 'PUABA00', 'PUABA00-PLM': 'PUABA00',
+  'PMAAL00': 'PMAAL00', 'PMAAL00-PLM': 'PMAAL00',
+  'PMAAM00': 'PMAAM00', 'PMAAM00-PLM': 'PMAAM00',
+  'AAIDT00': 'AAIDT00', 'AAIDT00-PLM': 'AAIDT00',
+  'AFUJK00': 'AFUJK00', 'AFUJK00-PLM': 'AFUJK00',
+  'AAICY00': 'AAICY00', 'AAICY00-PLM': 'AAICY00',
+  'PGAEY00': 'PGAEY00', 'PGAEY00-PLM': 'PGAEY00',
+  'AAWZA00': 'AAWZA00', 'AAWZA00-PLM': 'AAWZA00',
+};
+
+// Correspondance code Platts → marker Dashboard (brent, gasoil...)
+const PLATTS_CODE_TO_MARKER = {
+  'PCAAS00': 'brent',
+  'AAVJI00': 'gasoil',
+  'GAS1':    'gasoil',
+};
+
 // ── Platts assessment name / code → internal marker ──────────────
 const PLATTS_MAP = {
   // Brent
   'brent dated': 'brent', 'dated brent': 'brent', 'bfoe': 'brent',
   'brent': 'brent', 'brnt': 'brent',
   'aavbp00': 'brent', 'pcaas00': 'brent',
+  'ri: dated brent': 'brent',
   // WTI
   'wti': 'wti', 'cushing wti': 'wti', 'nymex wti': 'wti',
   'west texas intermediate': 'wti',
@@ -136,11 +165,69 @@ function countDates(row) {
   return row.filter(v => parseFlexDate(v) !== null).length;
 }
 
+// ── Detect if a row looks like Platts codes (PCAAS00-PLM, etc.) ──
+function isPlattsCodeRow(row) {
+  const plattsPattern = /^[A-Z]{4,8}\d{2}(-[A-Z]{2,3})?$|^GAS\s?1!(-[A-Z]+)?$/;
+  const candidates = row.filter(v => v && String(v).trim()).slice(0, 10);
+  return candidates.filter(v => plattsPattern.test(String(v).trim())).length >= 2;
+}
+
+// ── Build a structured Platts dataset from a 2-row header sheet ──
+function buildPlattsDataset(codes, descriptions, dataRows, filename) {
+  const normCodes = codes.map(c => {
+    const raw = String(c ?? '').trim().replace(/\s+/g, ' ');
+    return PLATTS_CODE_NORM[raw] ?? raw;
+  });
+  const prices = {};
+  const dates = [];
+  dataRows.forEach(row => {
+    const date = parseFlexDate(row[0]);
+    if (!date) return;
+    if (!prices[date]) { prices[date] = {}; dates.push(date); }
+    normCodes.forEach((code, i) => {
+      if (!code) return;
+      const raw = String(row[i + 1] ?? '').replace(',', '.');
+      const val = parseFloat(raw);
+      if (!isNaN(val) && val > 0) prices[date][code] = val;
+    });
+  });
+  dates.sort().reverse();
+  return {
+    source: filename || 'Import Platts',
+    importedAt: new Date().toISOString().slice(0, 10),
+    dates,
+    prices,
+    columns: normCodes.filter(Boolean),
+    descriptions: Object.fromEntries(normCodes.map((c, i) => [c, descriptions[i] ?? c])),
+  };
+}
+
 // ── Parse the sheet into {date → {assessmentName → price}} ───────
-function parseSheet(rows) {
+function parseSheet(rows, filename, onDatasetLoaded) {
   if (!rows || rows.length < 2) return { format: 'empty', data: {} };
 
   const header = rows[0].map(v => String(v ?? '').trim());
+
+  // ── FORMAT PLATTS RÉEL : 2 lignes d'en-tête (codes + descriptions) ──
+  // Ligne 0 = codes Platts (PCAAS00-PLM, AAWZB00-PLM, GAS 1!-ICE, ...)
+  // Ligne 1 = descriptions (RI: DATED BRENT, EB: GASOLINE ..., etc.)
+  // Ligne 2+ = données (date | v1 | v2 | ...)
+  if (isPlattsCodeRow(header.slice(1))) {
+    const codes        = header.slice(1);
+    const descriptions = rows[1] ? rows[1].slice(1).map(v => String(v ?? '').trim()) : codes;
+    const dataRows     = rows.slice(2);
+    const dataset = buildPlattsDataset(codes, descriptions, dataRows, filename);
+    if (onDatasetLoaded) onDatasetLoaded(dataset);
+    // Also build the simple {date → name → price} for the existing display
+    const data = {};
+    Object.entries(dataset.prices).forEach(([date, priceMap]) => {
+      data[date] = {};
+      Object.entries(priceMap).forEach(([code, price]) => {
+        data[date][code] = price;
+      });
+    });
+    return { format: 'platts-native', data, dataset };
+  }
 
   // ── WIDE FORMAT: assessments as rows, dates as columns ──────────
   // header = ['Assessment', 'code', 'Date 1', 'Date 2', ...]
@@ -227,7 +314,7 @@ function saveHistory(history) {
   catch {}
 }
 
-export default function PlattsImport({ setMarketPrice, marketPrices }) {
+export default function PlattsImport({ setMarketPrice, marketPrices, onDatasetLoaded }) {
   const fileInputRef = useRef(null);
   const [isDragging,    setIsDragging]   = useState(false);
   const [fileName,      setFileName]     = useState('');
@@ -241,11 +328,19 @@ export default function PlattsImport({ setMarketPrice, marketPrices }) {
   const [history,       setHistory]      = useState(loadHistory);
 
   // ── Parse a sheet ───────────────────────────────────────────────
-  const processSheet = useCallback((wb, name) => {
+  const processSheet = useCallback((wb, name, fname) => {
     const sheet = wb.Sheets[name];
     const rows  = utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
-    const result = parseSheet(rows);
+    const result = parseSheet(rows, fname, onDatasetLoaded);
     setParseResult(result);
+    // Apply key prices to marketPrices from Platts dataset
+    if (result.dataset && result.dataset.dates?.length) {
+      const latestDate = result.dataset.dates[0];
+      const pricesOnDate = result.dataset.prices[latestDate] ?? {};
+      // PCAAS00 → brent, AAVJI00 → gasoil
+      if (pricesOnDate['PCAAS00'] && setMarketPrice) setMarketPrice('brent', String(pricesOnDate['PCAAS00']));
+      if (pricesOnDate['AAVJI00'] && setMarketPrice) setMarketPrice('gasoil', String(pricesOnDate['AAVJI00']));
+    }
     setApplied(false);
 
     // Auto-select most recent date
@@ -275,8 +370,9 @@ export default function PlattsImport({ setMarketPrice, marketPrices }) {
       const wb = read(ab, { type: 'array', cellDates: true });
       setWorkbook(wb);
       const first = wb.SheetNames[0];
+      // eslint-disable-next-line no-shadow
       setSheetName(first);
-      processSheet(wb, first);
+      processSheet(wb, first, file.name);
     } catch (err) {
       alert('Erreur de lecture du fichier : ' + err.message);
     }

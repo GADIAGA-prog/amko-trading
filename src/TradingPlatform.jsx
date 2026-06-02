@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FilePlus2, ScrollText, TrendingUp, TrendingDown,
   DollarSign, Anchor, BarChart3, FileCheck2, ShieldAlert, Globe,
   Activity, Layers, Lightbulb, Users, User, LogOut, Moon, Sun,
-  FileSpreadsheet, RefreshCw, ClipboardList,
+  FileSpreadsheet, RefreshCw, ClipboardList, Zap,
 } from 'lucide-react';
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
@@ -30,6 +30,7 @@ import RiskMatrix   from './modules/RiskMatrix.jsx';
 import Resources     from './modules/Resources.jsx';
 import Spreads       from './modules/Spreads.jsx';
 import PlattsImport  from './modules/PlattsImport.jsx';
+import PlattsBoard   from './modules/PlattsBoard.jsx';
 import Rolling       from './modules/Rolling.jsx';
 import Documents     from './modules/Documents.jsx';
 
@@ -47,7 +48,8 @@ export default function TradingPlatform() {
   const [deals,        setDeals]        = useState([]);
   const [editingDeal,  setEditingDeal]  = useState(null);
   const [loaded,       setLoaded]       = useState(false);
-  const [marketPrices, setMarketPrices] = useState({ brent: '', wti: '', gasoil: '' });
+  const [marketPrices,  setMarketPrices]  = useState({ brent: '', wti: '', gasoil: '' });
+  const [plattsDataset, setPlattsDataset] = useState(null);
 
   // ── Persister le thème ────────────────────────────────────────
   useEffect(() => {
@@ -231,6 +233,7 @@ export default function TradingPlatform() {
     { id: 'risk',      label: 'Risques',           icon: ShieldAlert,     section: 'tools' },
     { id: 'spreads',  label: 'Spreads',           icon: TrendingUp,      section: 'tools' },
     { id: 'rolling',  label: 'Rolling',           icon: RefreshCw,       section: 'tools' },
+    { id: 'platts-board', label: 'Platts Board',   icon: Zap,             section: 'tools' },
     { id: 'platts',   label: 'Import Platts',     icon: FileSpreadsheet, section: 'tools' },
     { id: 'documents', label: 'Procédures & Docs', icon: ClipboardList,   section: 'docs' },
     { id: 'resources', label: 'Hub Ressources',   icon: Globe,           section: 'hub' },
@@ -344,8 +347,15 @@ export default function TradingPlatform() {
             {activeTab === 'risk'      && <RiskMatrix deals={deals} />}
             {activeTab === 'spreads'   && <Spreads />}
             {activeTab === 'rolling'   && <Rolling deals={deals} />}
+            {activeTab === 'platts-board' && (
+              <PlattsBoard plattsDataset={plattsDataset} setMarketPrice={setMarketPrice} />
+            )}
             {activeTab === 'platts'    && (
-              <PlattsImport setMarketPrice={setMarketPrice} marketPrices={marketPrices} />
+              <PlattsImport
+                setMarketPrice={setMarketPrice}
+                marketPrices={marketPrices}
+                onDatasetLoaded={setPlattsDataset}
+              />
             )}
             {activeTab === 'documents' && <Documents deals={deals} />}
             {activeTab === 'resources' && <Resources />}
