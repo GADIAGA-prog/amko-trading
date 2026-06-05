@@ -1,9 +1,33 @@
-import React, { useState } from 'react';
-import { Anchor, Calculator } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Anchor, Calculator, Save, CheckCircle2 } from 'lucide-react';
+import { PRODUCTS } from '../constants.js';
 import { fmt, fmtUSD } from '../utils.js';
-import { Card, CardHeader, CardBody, Field, Input, Select, Row } from '../components/UI.jsx';
+import { Card, CardHeader, CardBody, Field, Input, Select, Row, Button } from '../components/UI.jsx';
 
-export default function Freight() {
+// Construit un objet freight sauvegardable depuis les états locaux
+function buildFreightData(mode, flatRate, wsRate, addressCom, tonnage, secaNm, secaRate, otherCosts, lumpsum, demHours, demRate, totalFreight, freightPerMT) {
+  return {
+    mode,
+    flatRate: Number(flatRate) || 0,
+    wsRate: Number(wsRate) || 0,
+    addressCom: Number(addressCom) || 0,
+    tonnage: Number(tonnage) || 0,
+    secaNm: Number(secaNm) || 0,
+    secaRate: Number(secaRate) || 0,
+    otherCosts: Number(otherCosts) || 0,
+    lumpsum: Number(lumpsum) || 0,
+    demHours: Number(demHours) || 0,
+    demRate: Number(demRate) || 0,
+    totalFreight,
+    freightPerMT,
+    savedAt: new Date().toISOString(),
+  };
+}
+
+export default function Freight({ deals = [], onFreightSaved }) {
+  const [linkedDealId, setLinkedDealId] = useState('');
+  const [saved,        setSaved]        = useState(false);
+
   const [flatRate,    setFlatRate]    = useState('18.46');
   const [wsRate,      setWsRate]      = useState('80');
   const [addressCom,  setAddressCom]  = useState('1.25');
@@ -15,6 +39,33 @@ export default function Freight() {
   const [lumpsum,     setLumpsum]     = useState('');
   const [demHours,    setDemHours]    = useState('0');
   const [demRate,     setDemRate]     = useState('25000');
+
+  // ── Pré-remplir depuis le deal sélectionné ────────────────────
+  useEffect(() => {
+    if (!linkedDealId) return;
+    const d = deals.find(x => x.id === linkedDealId);
+    if (!d) return;
+    setSaved(false);
+
+    // Si le deal a un fret sauvegardé → restaurer tous les champs
+    if (d.freight) {
+      const fr = d.freight;
+      setMode(fr.mode || 'ws');
+      setFlatRate(String(fr.flatRate ?? 18.46));
+      setWsRate(String(fr.wsRate ?? 80));
+      setAddressCom(String(fr.addressCom ?? 1.25));
+      setTonnage(String(fr.tonnage || d.quantity || 130000));
+      setSecaNm(String(fr.secaNm ?? 0));
+      setSecaRate(String(fr.secaRate ?? 0));
+      setOtherCosts(String(fr.otherCosts ?? 0));
+      setLumpsum(String(fr.lumpsum ?? ''));
+      setDemHours(String(fr.demHours ?? 0));
+      setDemRate(String(fr.demRate ?? 25000));
+    } else {
+      // Pré-remplir la tonnage depuis la quantité du deal
+      if (d.quantity) setTonnage(String(d.quantity));
+    }
+  }, [linkedDealId]);
 
   const fr  = Number(flatRate)   || 0;
   const ws  = Number(wsRate)     || 0;
@@ -30,14 +81,78 @@ export default function Freight() {
   const totalFreight  = mode === 'ws' ? totalWS : lumpsumTotal;
   const freightPerMT  = t > 0 ? totalFreight / t : 0;
 
+  // ── Sauvegarder dans le deal ─────────────────────────────────
+  const saveToDeal = () => {
+    if (!linkedDealId || !onFreightSaved) return;
+    const data = buildFreightData(
+      mode, flatRate, wsRate, addressCom, tonnage,
+      secaNm, secaRate, otherCosts, lumpsum, demHours, demRate,
+      totalFreight, freightPerMT,
+    );
+    onFreightSaved(linkedDealId, data);
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
+
+  const linkedDeal = deals.find(d => d.id === linkedDealId);
+  const hasSavedFreight = !!(linkedDeal?.freight);
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Calculateur de fret</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Coût de fret en Worldscale ou Lumpsum</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          Coût de fret en Worldscale ou Lumpsum — liaison directe avec un deal
+        </p>
       </div>
 
+      {/* ── Liaison deal ─────────────────────────────────────── */}
+      <Card>
+        <CardHeader icon={Anchor} title="Lier à un deal"
+          subtitle={hasSavedFreight ? `Fret sauvegardé le ${linkedDeal.freight.savedAt?.slice(0,10)}` : 'Pré-remplit la tonnage depuis la quantité du deal'}
+          action={
+            linkedDealId ? (
+              <div className="flex gap-2 items-center">
+                {saved && (
+                  <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                    <CheckCircle2 className="w-4 h-4" /> Sauvegardé
+                  </div>
+                )}
+                <Button variant="primary" size="sm" icon={Save} onClick={saveToDeal}>
+                  Enregistrer dans le deal
+                </Button>
+              </div>
+            ) : null
+          }
+        />
+        <CardBody>
+          <div className="grid md:grid-cols-2 gap-4">
+            <Field label="Deal lié (optionnel)">
+              <Select value={linkedDealId} onChange={e => setLinkedDealId(e.target.value)}>
+                <option value="">— Calcul libre —</option>
+                {deals.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.id} — {PRODUCTS[d.product]?.name || d.product} — {d.counterparty}
+                    {d.freight ? ' ✓' : ''}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            {linkedDeal && (
+              <div className="flex items-center gap-4 text-sm text-slate-600 dark:text-slate-400">
+                <span>Quantité deal : <b className="text-slate-900 dark:text-slate-100">{linkedDeal.quantity} MT</b></span>
+                {linkedDeal.vessel && <span>Navire : <b className="text-slate-900 dark:text-slate-100">{linkedDeal.vessel}</b></span>}
+                <span className={hasSavedFreight ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-amber-600 dark:text-amber-400'}>
+                  {hasSavedFreight ? '✓ Fret enregistré' : '⚡ Nouveau calcul'}
+                </span>
+              </div>
+            )}
+          </div>
+        </CardBody>
+      </Card>
+
       <div className="grid md:grid-cols-2 gap-6">
+        {/* ── Paramètres ──────────────────────────────────────── */}
         <Card>
           <CardHeader icon={Anchor} title="Paramètres du voyage" />
           <CardBody>
@@ -103,6 +218,7 @@ export default function Freight() {
           </CardBody>
         </Card>
 
+        {/* ── Résultat ─────────────────────────────────────────── */}
         <Card>
           <CardHeader icon={Calculator} title="Résultat" />
           <CardBody>
@@ -142,6 +258,26 @@ export default function Freight() {
                 </div>
               )}
             </div>
+
+            {/* ── Récap si deal lié ──────────────────────────── */}
+            {linkedDeal && (
+              <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase">Impact sur le deal</p>
+                <div className="space-y-1.5 text-sm">
+                  <Row label="Volume deal"   value={`${linkedDeal.quantity} MT`} />
+                  <Row label="Fret / MT"     value={fmtUSD(freightPerMT, 2)} />
+                  <Row
+                    label="Fret total deal"
+                    value={fmtUSD(freightPerMT * (Number(linkedDeal.quantity) || 0), 0)}
+                  />
+                </div>
+                <Button
+                  variant="primary" icon={Save} onClick={saveToDeal}
+                  className="w-full mt-3 justify-center">
+                  Enregistrer ce fret dans le deal {linkedDeal.id}
+                </Button>
+              </div>
+            )}
           </CardBody>
         </Card>
       </div>

@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FilePlus2, ScrollText, TrendingUp, TrendingDown,
   DollarSign, Anchor, BarChart3, FileCheck2, ShieldAlert, Globe,
   Activity, Layers, Lightbulb, Users, User, LogOut, Moon, Sun,
-  FileSpreadsheet, RefreshCw, ClipboardList, Zap,
+  FileSpreadsheet, RefreshCw, ClipboardList, Zap, Package,
 } from 'lucide-react';
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
@@ -33,6 +33,7 @@ import PlattsImport  from './modules/PlattsImport.jsx';
 import PlattsBoard   from './modules/PlattsBoard.jsx';
 import Rolling       from './modules/Rolling.jsx';
 import Documents     from './modules/Documents.jsx';
+import Lots          from './modules/Lots.jsx';
 
 // ── Dark mode initialisation synchrone (évite le flash) ──────────
 function getInitialDarkMode() {
@@ -198,6 +199,25 @@ export default function TradingPlatform() {
   // Market prices (Fix 3)
   const setMarketPrice = (key, val) => setMarketPrices(prev => ({ ...prev, [key]: val }));
 
+  // Freight → enregistrer dans un deal
+  const saveFreight = (dealId, freightData) => {
+    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: freightData } : d));
+  };
+
+  // Lots → enregistrer dans un deal
+  const saveLots = (dealId, lots) => {
+    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, lots } : d));
+  };
+
+  // MOP Platts → pousser le prix vers estimatedPrice du deal
+  const pushMopToDeal = (dealId, plattsCode, priceBbl) => {
+    setDeals(ds => ds.map(d =>
+      d.id === dealId
+        ? { ...d, estimatedPrice: String(Math.round(priceBbl * 1000) / 1000) }
+        : d,
+    ));
+  };
+
   // ── Gardes ───────────────────────────────────────────────────
   if (!authChecked) {
     return (
@@ -224,6 +244,7 @@ export default function TradingPlatform() {
     { id: 'curve',     label: 'Courbe à terme',    icon: Layers,          section: 'main' },
     { id: 'deals',     label: 'Mes deals',         icon: ScrollText,      section: 'deals' },
     ...(!isViewer ? [{ id: 'new-deal', label: 'Nouveau deal', icon: FilePlus2, section: 'deals' }] : []),
+    { id: 'lots',      label: 'Lots & cargaisons', icon: Package,         section: 'deals' },
     { id: 'optimizer', label: 'Optimiseur',        icon: Lightbulb,       section: 'deals' },
     { id: 'hedging',   label: 'Hedging',           icon: TrendingUp,      section: 'tools' },
     { id: 'pricing',   label: 'Pricing',           icon: DollarSign,      section: 'tools' },
@@ -341,14 +362,24 @@ export default function TradingPlatform() {
             {activeTab === 'optimizer' && <Optimizer deals={deals} />}
             {activeTab === 'hedging'   && <Hedging   deals={deals} />}
             {activeTab === 'pricing'   && <Pricing   marketPrices={marketPrices} />}
-            {activeTab === 'freight'   && <Freight />}
+            {activeTab === 'freight'   && (
+              <Freight deals={deals} onFreightSaved={saveFreight} />
+            )}
+            {activeTab === 'lots'      && (
+              <Lots deals={deals} onLotsUpdated={saveLots} />
+            )}
             {activeTab === 'pnl'       && <PnL       deals={deals} marketPrices={marketPrices} />}
             {activeTab === 'lc'        && <LCChecker />}
             {activeTab === 'risk'      && <RiskMatrix deals={deals} />}
             {activeTab === 'spreads'   && <Spreads />}
             {activeTab === 'rolling'   && <Rolling deals={deals} />}
             {activeTab === 'platts-board' && (
-              <PlattsBoard plattsDataset={plattsDataset} setMarketPrice={setMarketPrice} />
+              <PlattsBoard
+                plattsDataset={plattsDataset}
+                setMarketPrice={setMarketPrice}
+                deals={deals}
+                onPushToDeal={pushMopToDeal}
+              />
             )}
             {activeTab === 'platts'    && (
               <PlattsImport

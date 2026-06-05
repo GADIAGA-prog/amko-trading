@@ -10,26 +10,40 @@ export default function PnL({ deals, marketPrices }) {
   const [sellPrice,  setSellPrice]  = useState('');
   const [quantity,   setQuantity]   = useState('6500');
   const [bblPerMT,   setBblPerMT]   = useState('7.55');
-  const [freight,    setFreight]    = useState('1900000');
+  const [freight,    setFreight]    = useState('');
   const [financing,  setFinancing]  = useState('25000');
   const [inspection, setInspection] = useState('8000');
   const [insurance,  setInsurance]  = useState('15000');
   const [demurrage,  setDemurrage]  = useState('0');
   const [other,      setOther]      = useState('0');
+  const [freightSource, setFreightSource] = useState('manual'); // 'manual' | 'deal'
 
   useEffect(() => {
-    if (selectedDealId) {
-      const d = deals.find(x => x.id === selectedDealId);
-      if (d) {
-        setQuantity(String(d.quantity || ''));
-        setBblPerMT(String(PRODUCTS[d.product]?.bblPerMT || 7.5));
-        if (d.estimatedPrice) {
-          if (d.dealType === 'buy') setBuyPrice(String(d.estimatedPrice));
-          else setSellPrice(String(d.estimatedPrice));
-        }
-      }
+    if (!selectedDealId) return;
+    const d = deals.find(x => x.id === selectedDealId);
+    if (!d) return;
+    setQuantity(String(d.quantity || ''));
+    setBblPerMT(String(PRODUCTS[d.product]?.bblPerMT || 7.5));
+    if (d.estimatedPrice) {
+      if (d.dealType === 'buy') setBuyPrice(String(d.estimatedPrice));
+      else setSellPrice(String(d.estimatedPrice));
+    }
+    // Auto-importer le fret sauvegardé dans le deal
+    if (d.freight?.totalFreight) {
+      setFreight(String(Math.round(d.freight.totalFreight)));
+      setFreightSource('deal');
+    } else {
+      setFreightSource('manual');
     }
   }, [selectedDealId, deals]);
+
+  const importFreightFromDeal = () => {
+    const d = deals.find(x => x.id === selectedDealId);
+    if (d?.freight?.totalFreight) {
+      setFreight(String(Math.round(d.freight.totalFreight)));
+      setFreightSource('deal');
+    }
+  };
 
   // Fix 3 — prix de référence depuis le Dashboard
   const refBrent = marketPrices?.brent;
@@ -94,9 +108,23 @@ export default function PnL({ deals, marketPrices }) {
               </Field>
             </div>
             <div className="border-t border-slate-200 dark:border-slate-700 mt-4 pt-4">
-              <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2 uppercase">Coûts</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase">Coûts</p>
+                {selectedDealId && deals.find(d => d.id === selectedDealId)?.freight && freightSource !== 'deal' && (
+                  <button onClick={importFreightFromDeal}
+                    className="text-xs text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-1">
+                    ⬇ Importer le fret sauvegardé du deal
+                  </button>
+                )}
+                {freightSource === 'deal' && (
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
+                    ✓ Fret du deal
+                  </span>
+                )}
+              </div>
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Fret ($)">        <Input type="number" value={freight}    onChange={e => setFreight(e.target.value)} /></Field>
+                <Field label="Fret ($)" hint={freightSource === 'deal' ? `Fret calculateur : ${fmtUSD(Number(freight)||0,0)}` : undefined}>
+                  <Input type="number" value={freight} onChange={e => { setFreight(e.target.value); setFreightSource('manual'); }} /></Field>
                 <Field label="Financement ($)"> <Input type="number" value={financing}  onChange={e => setFinancing(e.target.value)} /></Field>
                 <Field label="Inspection ($)">  <Input type="number" value={inspection} onChange={e => setInspection(e.target.value)} /></Field>
                 <Field label="Assurance ($)">   <Input type="number" value={insurance}  onChange={e => setInsurance(e.target.value)} /></Field>

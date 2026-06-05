@@ -1,14 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import {
   TrendingUp, TrendingDown, Zap, AlertTriangle, CheckCircle2,
-  BarChart3, Activity, Globe, ArrowUpDown, Layers,
+  BarChart3, Activity, Globe, ArrowUpDown, Layers, Calculator,
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, ReferenceLine,
 } from 'recharts';
-import { Card, CardHeader, CardBody, Select, Button } from '../components/UI.jsx';
+import { Card, CardHeader, CardBody, Select, Button, Field, Input } from '../components/UI.jsx';
 import { fmt } from '../utils.js';
+import { PRODUCTS } from '../constants.js';
 
 // ─────────────────────────────────────────────────────────────────
 // MÉTADONNÉES DES 16 ASSESSMENTS PLATTS DU FICHIER AMKO
@@ -186,7 +187,7 @@ function CrackCard({ label, spreadMT, spreadBbl, d1MT, accent = 'blue' }) {
 // ─────────────────────────────────────────────────────────────────
 // COMPOSANT PRINCIPAL
 // ─────────────────────────────────────────────────────────────────
-export default function PlattsBoard({ plattsDataset, setMarketPrice }) {
+export default function PlattsBoard({ plattsDataset, setMarketPrice, deals = [], onPushToDeal }) {
   const dataset = plattsDataset ?? PRELOADED;
   const dates = getDates(dataset);
   const latestDate = dates[0] ?? '';
@@ -305,16 +306,48 @@ export default function PlattsBoard({ plattsDataset, setMarketPrice }) {
     });
   }, [chartSeries, dates, dataset]);
 
+  // ── MOP Calculator — Moyenne de Période ──────────────────────
+  const [mopCode,    setMopCode]    = useState('PCAAS00');
+  const [mopDays,    setMopDays]    = useState('5');
+  const [mopDiff,    setMopDiff]    = useState('0');
+  const [mopDealId,  setMopDealId]  = useState('');
+  const [mopPushed,  setMopPushed]  = useState(false);
+
+  const mopValues = useMemo(() => {
+    const n = parseInt(mopDays) || 0;
+    const col = colByCode[mopCode];
+    if (!col) return null;
+    const asc = Object.entries(dataset.prices || {})
+      .filter(([, p]) => p[mopCode] != null)
+      .sort(([a], [b]) => a < b ? -1 : 1)
+      .map(([d, p]) => ({ d, v: toMT(p[mopCode], col) }))
+      .filter(x => x.v != null);
+    const window = n > 0 ? asc.slice(-n) : asc;
+    if (!window.length) return null;
+    const avg = window.reduce((s, x) => s + x.v, 0) / window.length;
+    const withDiff = avg + (Number(mopDiff) || 0);
+    // In $/bbl for pricing
+    const avgBbl = col.unit === 'MT' ? avg / col.bblMT : avg;
+    const withDiffBbl = col.unit === 'MT' ? withDiff / col.bblMT : withDiff;
+    return { avg, withDiff, avgBbl, withDiffBbl, n: window.length, min: Math.min(...window.map(x=>x.v)), max: Math.max(...window.map(x=>x.v)), col };
+  }, [mopCode, mopDays, dataset, colByCode]);
+
+  const pushMopToDeal = () => {
+    if (!mopDealId || !mopValues || !onPushToDeal) return;
+    onPushToDeal(mopDealId, mopCode, mopValues.withDiffBbl);
+    setMopPushed(true);
+    setTimeout(() => setMopPushed(false), 3000);
+  };
+
   // ── Appliquer au Dashboard ─────────────────────────────────────
   const applyToDashboard = () => {
     if (brent && setMarketPrice) setMarketPrice('brent', String(brent));
     const gasoil = getP('AAVJI00');
     if (gasoil && setMarketPrice) setMarketPrice('gasoil', String(gasoil));
-    const go_ag = getP('AAIDT00');
-    // wti not in file — skip
   };
 
   const sections = [
+    { id: 'mop',          label: 'Calculateur MOP' },
     { id: 'snapshot',     label: 'Snapshot' },
     { id: 'cracks',       label: 'Crack Spreads' },
     { id: 'differentials',label: 'Différentiels' },
@@ -356,6 +389,107 @@ export default function PlattsBoard({ plattsDataset, setMarketPrice }) {
           </button>
         ))}
       </div>
+
+      {/* ── CALCULATEUR MOP ───────────────────────────────────── */}
+      {activeSection === 'mop' && (
+        <div className="space-y-4">
+          <Card>
+            <CardHeader icon={Calculator} title="Calculateur MOP — Moyenne de Période"
+              subtitle="Calcule le Platts moyen sur N jours et pousse le prix vers un deal ou un lot" />
+            <CardBody>
+              <div className="grid md:grid-cols-4 gap-4">
+                <Field label="Assessment Platts">
+                  <Select value={mopCode} onChange={e => { setMopCode(e.target.value); setMopPushed(false); }}>
+                    {PLATTS_COLS.filter(c => (dataset.prices?.[dates[0]]?.[c.code]) != null || Object.values(dataset.prices||{}).some(p=>p[c.code]!=null)).map(c => (
+                      <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
+                    ))}
+                  </Select>
+                </Field>
+                <Field label="Fenêtre (N derniers jours, 0 = tout)">
+                  <Input type="number" min="0" value={mopDays} onChange={e => setMopDays(e.target.value)} />
+                </Field>
+                <Field label="Différentiel ($/MT ou $/bbl)">
+                  <Input type="number" step="0.01" value={mopDiff} onChange={e => setMopDiff(e.target.value)} placeholder="0.00" />
+                </Field>
+                <Field label="Jours retenus">
+                  <div className="px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-md text-sm font-semibold text-slate-800 dark:text-slate-200">
+                    {mopValues?.n ?? '—'} jours
+                  </div>
+                </Field>
+              </div>
+
+              {mopValues ? (
+                <>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+                    <div className="px-4 py-3 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">MOP brut</div>
+                      <div className="text-2xl font-bold text-blue-700 dark:text-blue-400 mt-1">
+                        {fmt(mopValues.avg, 3)} <span className="text-xs font-normal">$/{mopValues.col.unit}</span>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">MOP + différentiel</div>
+                      <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">
+                        {fmt(mopValues.withDiff, 3)} <span className="text-xs font-normal">$/{mopValues.col.unit}</span>
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Équivalent $/bbl</div>
+                      <div className="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-1">
+                        {fmt(mopValues.withDiffBbl, 3)}
+                      </div>
+                    </div>
+                    <div className="px-4 py-3 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Min — Max</div>
+                      <div className="text-base font-semibold text-slate-700 dark:text-slate-300 mt-1">
+                        {fmt(mopValues.min, 2)} — {fmt(mopValues.max, 2)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Push vers deal */}
+                  <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3 uppercase">
+                      Pousser ce prix vers un deal
+                    </p>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <Field label="Deal cible">
+                        <Select value={mopDealId} onChange={e => { setMopDealId(e.target.value); setMopPushed(false); }}>
+                          <option value="">— Choisir un deal —</option>
+                          {deals.map(d => (
+                            <option key={d.id} value={d.id}>
+                              {d.id} — {PRODUCTS[d.product]?.name || d.product} — {d.counterparty}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                      <div className="flex items-end gap-2">
+                        <Button variant="primary" icon={Zap}
+                          onClick={pushMopToDeal}
+                          disabled={!mopDealId || !onPushToDeal}>
+                          Pousser {fmt(mopValues.withDiffBbl, 3)} $/bbl → deal
+                        </Button>
+                        {mopPushed && (
+                          <span className="text-emerald-600 dark:text-emerald-400 text-sm font-semibold flex items-center gap-1">
+                            <CheckCircle2 className="w-4 h-4" /> Poussé !
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                      Le prix {fmt(mopValues.withDiffBbl, 3)} $/bbl sera enregistré comme <b>prix estimé</b> du deal sélectionné.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <div className="mt-4 text-center py-6 text-slate-500 dark:text-slate-400 text-sm">
+                  Aucune donnée disponible pour cet assessment. Importez un fichier Platts.
+                </div>
+              )}
+            </CardBody>
+          </Card>
+        </div>
+      )}
 
       {/* ── SNAPSHOT ──────────────────────────────────────────── */}
       {activeSection === 'snapshot' && (
