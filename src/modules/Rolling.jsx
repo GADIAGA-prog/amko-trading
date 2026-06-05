@@ -3,6 +3,7 @@ import { RefreshCw, TrendingUp, TrendingDown, Calculator, Trash2, Save } from 'l
 import { CONTRACTS } from '../constants.js';
 import { fmt, fmtUSD } from '../utils.js';
 import { Card, CardHeader, CardBody, Field, Input, Select, Button, Stat, Row } from '../components/UI.jsx';
+import { computeRoll } from '../calc/rollCalc.js';
 
 // ── Rolling : explication métier ─────────────────────────────────
 // SHORT hedger (couvre un stock physique long) :
@@ -44,20 +45,12 @@ export default function Rolling({ deals }) {
   const [notes,       setNotes]       = useState('');
   const [history,     setHistory]     = useState(loadRollHistory);
 
-  const contract = CONTRACTS[contractKey];
-  const nLots    = Number(lots) || 0;
-  const pNear    = Number(priceNear) || 0;
-  const pFar     = Number(priceFar)  || 0;
+  const nLots = Number(lots)      || 0;
+  const pNear = Number(priceNear) || 0;
+  const pFar  = Number(priceFar)  || 0;
 
-  const rollSpread = pFar - pNear; // M_far − M_near
-  const totalBbl   = nLots * contract.size;
-
-  // Net roll P&L per bbl
-  const netPerBbl  = direction === 'short' ? rollSpread : -rollSpread;
-  const totalRoll  = netPerBbl * totalBbl;
-  const isCredit   = totalRoll > 0;
-
-  const structure = rollSpread > 0.1 ? 'CONTANGO' : rollSpread < -0.1 ? 'BACKWARDATION' : 'FLAT';
+  const { contract, rollSpread, totalBbl, netPerBbl, totalRoll, isCredit, structure } =
+    computeRoll({ position: direction, frontPrice: pNear, nextPrice: pFar, nLots, contractKey });
 
   const canCalc = nLots > 0 && pNear > 0 && pFar > 0;
 

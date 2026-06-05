@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, DollarSign, BarChart3 } from 'lucide-react';
 import { PRODUCTS } from '../constants.js';
 import { fmt, fmtUSD } from '../utils.js';
 import { Card, CardHeader, CardBody, Field, Input, Select, Row, Button } from '../components/UI.jsx';
+import { computePnL } from '../calc/pnlCalc.js';
 
 export default function PnL({ deals, marketPrices }) {
   const [selectedDealId, setSelectedDealId] = useState('');
@@ -49,19 +50,8 @@ export default function PnL({ deals, marketPrices }) {
   const refBrent = marketPrices?.brent;
   const useBrentRef = () => { if (refBrent) { setBuyPrice(String(refBrent)); setSellPrice(String(refBrent)); } };
 
-  const qty          = Number(quantity) || 0;
-  const bp           = Number(buyPrice)  || 0;
-  const sp           = Number(sellPrice) || 0;
-  const totalBbl     = qty * (Number(bblPerMT) || 0);
-  const revenue      = totalBbl * sp;
-  const cogs         = totalBbl * bp;
-  const grossMargin  = revenue - cogs;
-  const costs        = (Number(freight)    || 0) + (Number(financing)  || 0)
-                     + (Number(inspection) || 0) + (Number(insurance)  || 0)
-                     + (Number(demurrage)  || 0) + (Number(other)      || 0);
-  const netMargin    = grossMargin - costs;
-  const marginPerBbl = totalBbl > 0 ? netMargin / totalBbl : 0;
-  const marginPct    = revenue   > 0 ? (netMargin / revenue) * 100 : 0;
+  const { totalBbl, revenue, cogs, grossMargin, costs, netMargin, marginPerBbl, marginPct } =
+    computePnL({ buyPrice, sellPrice, quantity, bblPerMT, freight, financing, inspection, insurance, demurrage, other });
 
   return (
     <div className="space-y-6">

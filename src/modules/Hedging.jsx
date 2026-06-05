@@ -4,6 +4,7 @@ import { PRODUCTS, CONTRACTS } from '../constants.js';
 import { fmt } from '../utils.js';
 import { Card, CardHeader, CardBody, Field, Input, Select } from '../components/UI.jsx';
 import { TVAdvancedChart } from '../components/TradingViewWidgets.jsx';
+import { computeHedge } from '../calc/hedgeCalc.js';
 
 export default function Hedging({ deals }) {
   const [productKey,  setProductKey]  = useState('crude-bonny');
@@ -33,19 +34,8 @@ export default function Hedging({ deals }) {
     }
   }, [linkedDeal, deals]);
 
-  const product      = PRODUCTS[productKey];
-  const contract     = CONTRACTS[contractKey];
-  const qty          = Number(quantity) || 0;
-  const barrels      = qty * product.bblPerMT;
-  const hedgedBarrels = barrels * (Number(hedgeRatio) / 100);
-
-  let lots = 0;
-  if (contract.unit === 'bbl') lots = hedgedBarrels / contract.size;
-  else if (contract.unit === 'MT') lots = (qty * Number(hedgeRatio) / 100) / contract.size;
-
-  const lotsRound = Math.round(lots);
-  const overHedge = lotsRound - lots;
-  const basisRisk  = product.marker !== contract.marker;
+  const { product, contract, qty, barrels, hedgedBarrels, lots, lotsRound, overHedge, basisRisk } =
+    computeHedge({ productKey, quantity, hedgeRatio, contractKey });
 
   return (
     <div className="space-y-6">
