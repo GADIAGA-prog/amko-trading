@@ -1,65 +1,64 @@
 import React, { useState, useEffect } from 'react';
 import {
-  LayoutDashboard, FilePlus2, ScrollText, TrendingUp, TrendingDown,
+  LayoutDashboard, FilePlus2, ScrollText, TrendingUp,
   DollarSign, Anchor, BarChart3, FileCheck2, ShieldAlert, Globe,
   Activity, Layers, Lightbulb, Users, User, LogOut, Moon, Sun,
   FileSpreadsheet, RefreshCw, ClipboardList, Zap, Package, MessageSquare,
+  ClipboardCheck,
 } from 'lucide-react';
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
-import { uid, todayISO }              from './utils.js';
+import { uid, todayISO } from './utils.js';
 import { loadUsers, loadSession, saveSession } from './auth/authHelpers.js';
-import { AmkoLogo }                   from './components/Logo.jsx';
+import { AmkoLogo } from './components/Logo.jsx';
 
-import AuthScreen      from './auth/AuthScreen.jsx';
-import UserManagement  from './auth/UserManagement.jsx';
-import MyProfile       from './auth/MyProfile.jsx';
+import AuthScreen from './auth/AuthScreen.jsx';
+import UserManagement from './auth/UserManagement.jsx';
+import MyProfile from './auth/MyProfile.jsx';
 
-import Dashboard    from './modules/Dashboard.jsx';
-import Market       from './modules/Market.jsx';
+import Dashboard from './modules/Dashboard.jsx';
+import Market from './modules/Market.jsx';
 import ForwardCurve from './modules/ForwardCurve.jsx';
-import NewDeal      from './modules/NewDeal.jsx';
-import DealsList    from './modules/DealsList.jsx';
-import Optimizer    from './modules/Optimizer.jsx';
-import Hedging      from './modules/Hedging.jsx';
-import Freight      from './modules/Freight.jsx';
-import Pricing      from './modules/Pricing.jsx';
-import PnL          from './modules/PnL.jsx';
-import LCChecker    from './modules/LCChecker.jsx';
-import RiskMatrix   from './modules/RiskMatrix.jsx';
-import Resources     from './modules/Resources.jsx';
-import Spreads       from './modules/Spreads.jsx';
-import PlattsImport  from './modules/PlattsImport.jsx';
-import PlattsBoard   from './modules/PlattsBoard.jsx';
-import Rolling       from './modules/Rolling.jsx';
-import Documents     from './modules/Documents.jsx';
-import Lots          from './modules/Lots.jsx';
-import AgentChat     from './modules/AgentChat.jsx';
+import NewDeal from './modules/NewDeal.jsx';
+import DealsList from './modules/DealsList.jsx';
+import Optimizer from './modules/Optimizer.jsx';
+import Hedging from './modules/Hedging.jsx';
+import Freight from './modules/Freight.jsx';
+import Pricing from './modules/Pricing.jsx';
+import PnL from './modules/PnL.jsx';
+import LCChecker from './modules/LCChecker.jsx';
+import RiskMatrix from './modules/RiskMatrix.jsx';
+import Resources from './modules/Resources.jsx';
+import Spreads from './modules/Spreads.jsx';
+import PlattsImport from './modules/PlattsImport.jsx';
+import PlattsBoard from './modules/PlattsBoard.jsx';
+import Rolling from './modules/Rolling.jsx';
+import Documents from './modules/Documents.jsx';
+import Lots from './modules/Lots.jsx';
+import AgentChat from './modules/AgentChat.jsx';
+import DealManagerAgent from './modules/DealManagerAgent.jsx';
 
-// ── Dark mode initialisation synchrone (évite le flash) ──────────
 function getInitialDarkMode() {
   try { return localStorage.getItem('amko_theme') === 'dark'; }
   catch { return false; }
 }
 
 export default function TradingPlatform() {
-  const [darkMode,     setDarkMode]     = useState(getInitialDarkMode);
-  const [currentUser,  setCurrentUser]  = useState(null);
-  const [authChecked,  setAuthChecked]  = useState(false);
-  const [activeTab,    setActiveTab]    = useState('dashboard');
-  const [deals,        setDeals]        = useState([]);
-  const [editingDeal,  setEditingDeal]  = useState(null);
-  const [loaded,       setLoaded]       = useState(false);
-  const [marketPrices,  setMarketPrices]  = useState({ brent: '', wti: '', gasoil: '' });
+  const [darkMode, setDarkMode] = useState(getInitialDarkMode);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [deals, setDeals] = useState([]);
+  const [editingDeal, setEditingDeal] = useState(null);
+  const [loaded, setLoaded] = useState(false);
+  const [marketPrices, setMarketPrices] = useState({ brent: '', wti: '', gasoil: '' });
   const [plattsDataset, setPlattsDataset] = useState(null);
 
-  // ── Persister le thème ────────────────────────────────────────
   useEffect(() => {
     try { localStorage.setItem('amko_theme', darkMode ? 'dark' : 'light'); }
     catch {}
   }, [darkMode]);
 
-  // ── Auth : restaurer la session ───────────────────────────────
   useEffect(() => {
     (async () => {
       try {
@@ -84,16 +83,16 @@ export default function TradingPlatform() {
     })();
   }, []);
 
-  // ── Auth : auto-logout sur inactivité ────────────────────────
   useEffect(() => {
     if (!currentUser) return;
     const tickActivity = async () => {
       const s = await loadSession();
       if (s) await saveSession({ ...s, lastActivity: Date.now() });
     };
+
     window.addEventListener('mousemove', tickActivity);
-    window.addEventListener('keydown',   tickActivity);
-    window.addEventListener('click',     tickActivity);
+    window.addEventListener('keydown', tickActivity);
+    window.addEventListener('click', tickActivity);
 
     const interval = setInterval(async () => {
       const s = await loadSession();
@@ -107,13 +106,12 @@ export default function TradingPlatform() {
 
     return () => {
       window.removeEventListener('mousemove', tickActivity);
-      window.removeEventListener('keydown',   tickActivity);
-      window.removeEventListener('click',     tickActivity);
+      window.removeEventListener('keydown', tickActivity);
+      window.removeEventListener('click', tickActivity);
       clearInterval(interval);
     };
   }, [currentUser]);
 
-  // ── Deals : isolation par utilisateur ────────────────────────
   const dealsKey = currentUser ? `deals_user_${currentUser.id}` : null;
 
   useEffect(() => {
@@ -122,7 +120,9 @@ export default function TradingPlatform() {
       try {
         const res = await window.storage.get(dealsKey);
         setDeals(res?.value ? JSON.parse(res.value) : []);
-      } catch { setDeals([]); }
+      } catch {
+        setDeals([]);
+      }
       setLoaded(true);
     })();
   }, [currentUser, dealsKey]);
@@ -135,7 +135,6 @@ export default function TradingPlatform() {
     })();
   }, [deals, loaded, dealsKey]);
 
-  // ── Handlers ─────────────────────────────────────────────────
   const handleAuth = (user) => { setCurrentUser(user); setActiveTab('dashboard'); };
 
   const logout = async () => {
@@ -147,7 +146,7 @@ export default function TradingPlatform() {
   };
 
   const isViewer = currentUser?.role === 'viewer';
-  const isAdmin  = currentUser?.role === 'admin';
+  const isAdmin = currentUser?.role === 'admin';
 
   const saveDeal = (deal) => {
     if (isViewer) { alert('Les utilisateurs Viewer ne peuvent pas créer ou modifier de deals.'); return; }
@@ -167,25 +166,24 @@ export default function TradingPlatform() {
 
   const editDeal = (d) => {
     if (isViewer) { alert('Les utilisateurs Viewer ne peuvent pas modifier de deals.'); return; }
-    setEditingDeal(d); setActiveTab('new-deal');
+    setEditingDeal(d);
+    setActiveTab('new-deal');
   };
 
-  // Duplicate: copie le deal avec nouvel ID, statut "open", date d'aujourd'hui
   const duplicateDeal = (d) => {
     if (isViewer) { alert('Les utilisateurs Viewer ne peuvent pas créer de deals.'); return; }
     const newDeal = {
       ...d,
-      id:        uid(),
-      status:    'open',
+      id: uid(),
+      status: 'open',
       createdAt: todayISO(),
-      notes:     `[Dupliqué de ${d.id}] ${d.notes || ''}`.trim(),
+      notes: `[Dupliqué de ${d.id}] ${d.notes || ''}`.trim(),
     };
     setDeals(ds => [...ds, newDeal]);
     setEditingDeal(newDeal);
     setActiveTab('new-deal');
   };
 
-  // Import JSON deals (merge, skip existing IDs)
   const importDeals = (imported) => {
     setDeals(existing => {
       const existingIds = new Set(existing.map(d => d.id));
@@ -194,23 +192,11 @@ export default function TradingPlatform() {
     });
   };
 
-  // Restore deals (full replace — from MyProfile backup)
   const restoreDeals = (imported) => { setDeals(imported); };
-
-  // Market prices (Fix 3)
   const setMarketPrice = (key, val) => setMarketPrices(prev => ({ ...prev, [key]: val }));
+  const saveFreight = (dealId, freightData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: freightData } : d));
+  const saveLots = (dealId, lots) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, lots } : d));
 
-  // Freight → enregistrer dans un deal
-  const saveFreight = (dealId, freightData) => {
-    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: freightData } : d));
-  };
-
-  // Lots → enregistrer dans un deal
-  const saveLots = (dealId, lots) => {
-    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, lots } : d));
-  };
-
-  // MOP Platts → pousser le prix vers estimatedPrice du deal
   const pushMopToDeal = (dealId, plattsCode, priceBbl) => {
     setDeals(ds => ds.map(d =>
       d.id === dealId
@@ -219,7 +205,6 @@ export default function TradingPlatform() {
     ));
   };
 
-  // ── Gardes ───────────────────────────────────────────────────
   if (!authChecked) {
     return (
       <div className={darkMode ? 'dark' : ''}>
@@ -238,46 +223,44 @@ export default function TradingPlatform() {
     );
   }
 
-  // ── Navigation ────────────────────────────────────────────────
   const nav = [
-    { id: 'agent',     label: 'Agent conseiller',  icon: MessageSquare,   section: 'main' },
-    { id: 'dashboard', label: 'Tableau de bord',  icon: LayoutDashboard, section: 'main' },
-    { id: 'market',    label: 'Marché temps réel', icon: Activity,        section: 'main' },
-    { id: 'curve',     label: 'Courbe à terme',    icon: Layers,          section: 'main' },
-    { id: 'deals',     label: 'Mes deals',         icon: ScrollText,      section: 'deals' },
+    { id: 'agent', label: 'Agent conseiller', icon: MessageSquare, section: 'main' },
+    { id: 'deal-manager-agent', label: 'Deal Manager IA', icon: ClipboardCheck, section: 'main' },
+    { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard, section: 'main' },
+    { id: 'market', label: 'Marché temps réel', icon: Activity, section: 'main' },
+    { id: 'curve', label: 'Courbe à terme', icon: Layers, section: 'main' },
+    { id: 'deals', label: 'Mes deals', icon: ScrollText, section: 'deals' },
     ...(!isViewer ? [{ id: 'new-deal', label: 'Nouveau deal', icon: FilePlus2, section: 'deals' }] : []),
-    { id: 'lots',      label: 'Lots & cargaisons', icon: Package,         section: 'deals' },
-    { id: 'optimizer', label: 'Optimiseur',        icon: Lightbulb,       section: 'deals' },
-    { id: 'hedging',   label: 'Hedging',           icon: TrendingUp,      section: 'tools' },
-    { id: 'pricing',   label: 'Pricing',           icon: DollarSign,      section: 'tools' },
-    { id: 'freight',   label: 'Fret (WS)',         icon: Anchor,          section: 'tools' },
-    { id: 'pnl',       label: 'P&L',              icon: BarChart3,       section: 'tools' },
-    { id: 'lc',        label: 'LC Checker',        icon: FileCheck2,      section: 'tools' },
-    { id: 'risk',      label: 'Risques',           icon: ShieldAlert,     section: 'tools' },
-    { id: 'spreads',  label: 'Spreads',           icon: TrendingUp,      section: 'tools' },
-    { id: 'rolling',  label: 'Rolling',           icon: RefreshCw,       section: 'tools' },
-    { id: 'platts-board', label: 'Platts Board',   icon: Zap,             section: 'tools' },
-    { id: 'platts',   label: 'Import Platts',     icon: FileSpreadsheet, section: 'tools' },
-    { id: 'documents', label: 'Procédures & Docs', icon: ClipboardList,   section: 'docs' },
-    { id: 'resources', label: 'Hub Ressources',   icon: Globe,           section: 'hub' },
-    { id: 'profile',   label: 'Mon profil',        icon: User,            section: 'account' },
+    { id: 'lots', label: 'Lots & cargaisons', icon: Package, section: 'deals' },
+    { id: 'optimizer', label: 'Optimiseur', icon: Lightbulb, section: 'deals' },
+    { id: 'hedging', label: 'Hedging', icon: TrendingUp, section: 'tools' },
+    { id: 'pricing', label: 'Pricing', icon: DollarSign, section: 'tools' },
+    { id: 'freight', label: 'Fret (WS)', icon: Anchor, section: 'tools' },
+    { id: 'pnl', label: 'P&L', icon: BarChart3, section: 'tools' },
+    { id: 'lc', label: 'LC Checker', icon: FileCheck2, section: 'tools' },
+    { id: 'risk', label: 'Risques', icon: ShieldAlert, section: 'tools' },
+    { id: 'spreads', label: 'Spreads', icon: TrendingUp, section: 'tools' },
+    { id: 'rolling', label: 'Rolling', icon: RefreshCw, section: 'tools' },
+    { id: 'platts-board', label: 'Platts Board', icon: Zap, section: 'tools' },
+    { id: 'platts', label: 'Import Platts', icon: FileSpreadsheet, section: 'tools' },
+    { id: 'documents', label: 'Procédures & Docs', icon: ClipboardList, section: 'docs' },
+    { id: 'resources', label: 'Hub Ressources', icon: Globe, section: 'hub' },
+    { id: 'profile', label: 'Mon profil', icon: User, section: 'account' },
     ...(isAdmin ? [{ id: 'users', label: 'Utilisateurs', icon: Users, section: 'account' }] : []),
   ];
 
   const sections = {
-    main:    { label: "Marché & vue d'ensemble" },
-    deals:   { label: 'Mes opérations' },
-    tools:   { label: 'Outils' },
-    docs:    { label: 'Procédures & Documents' },
-    hub:     { label: 'Ressources externes' },
+    main: { label: "Marché & vue d'ensemble" },
+    deals: { label: 'Mes opérations' },
+    tools: { label: 'Outils' },
+    docs: { label: 'Procédures & Documents' },
+    hub: { label: 'Ressources externes' },
     account: { label: 'Compte' },
   };
 
   return (
     <div className={darkMode ? 'dark' : ''}>
       <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex">
-
-        {/* ── Sidebar ─────────────────────────────────────────── */}
         <aside className="w-60 bg-slate-900 text-white flex flex-col flex-shrink-0">
           <div className="px-4 py-5 bg-white dark:bg-slate-800 border-b-2 border-amber-500">
             <div className="flex items-center justify-center">
@@ -295,16 +278,18 @@ export default function TradingPlatform() {
                     {section.label}
                   </div>
                   {items.map(n => {
-                    const Icon   = n.icon;
+                    const Icon = n.icon;
                     const active = activeTab === n.id;
                     return (
-                      <button key={n.id}
+                      <button
+                        key={n.id}
                         onClick={() => { if (n.id === 'new-deal') setEditingDeal(null); setActiveTab(n.id); }}
                         className={`w-full flex items-center gap-3 px-5 py-2 text-sm transition ${
                           active
                             ? 'bg-blue-700 text-white border-l-4 border-amber-400'
                             : 'text-slate-300 hover:bg-slate-800'
-                        }`}>
+                        }`}
+                      >
                         <Icon className="w-4 h-4" />{n.label}
                       </button>
                     );
@@ -314,11 +299,11 @@ export default function TradingPlatform() {
             })}
           </nav>
 
-          {/* Dark mode toggle + user info */}
           <div className="border-t border-slate-700 p-4 space-y-3">
-            {/* Moon / Sun toggle */}
-            <button onClick={() => setDarkMode(d => !d)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 rounded-md transition">
+            <button
+              onClick={() => setDarkMode(d => !d)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 rounded-md transition"
+            >
               {darkMode
                 ? <><Sun className="w-4 h-4 text-amber-400" /> Mode clair</>
                 : <><Moon className="w-4 h-4 text-slate-400" /> Mode sombre</>}
@@ -336,75 +321,54 @@ export default function TradingPlatform() {
               </div>
             </div>
 
-            <button onClick={logout}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium bg-slate-800 hover:bg-red-700 text-slate-200 hover:text-white rounded-md transition">
+            <button
+              onClick={logout}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium bg-slate-800 hover:bg-red-700 text-slate-200 hover:text-white rounded-md transition"
+            >
               <LogOut className="w-3.5 h-3.5" />Se déconnecter
             </button>
           </div>
         </aside>
 
-        {/* ── Main content ─────────────────────────────────────── */}
         <main className="flex-1 overflow-auto">
           <div className="max-w-7xl mx-auto p-6 lg:p-8">
             {activeTab === 'agent' && (
-              <AgentChat
-                deals={deals}
-                marketPrices={marketPrices}
-                plattsDataset={plattsDataset}
-              />
+              <AgentChat deals={deals} marketPrices={marketPrices} plattsDataset={plattsDataset} />
+            )}
+            {activeTab === 'deal-manager-agent' && (
+              <DealManagerAgent deals={deals} marketPrices={marketPrices} plattsDataset={plattsDataset} />
             )}
             {activeTab === 'dashboard' && (
-              <Dashboard deals={deals} goTo={setActiveTab}
-                marketPrices={marketPrices} setMarketPrice={setMarketPrice} />
+              <Dashboard deals={deals} goTo={setActiveTab} marketPrices={marketPrices} setMarketPrice={setMarketPrice} />
             )}
-            {activeTab === 'market'    && <Market />}
-            {activeTab === 'curve'     && <ForwardCurve />}
-            {activeTab === 'deals'     && (
-              <DealsList deals={deals}
-                onEdit={editDeal} onDelete={deleteDeal}
-                onDuplicate={duplicateDeal} onImportDeals={importDeals} />
+            {activeTab === 'market' && <Market />}
+            {activeTab === 'curve' && <ForwardCurve />}
+            {activeTab === 'deals' && (
+              <DealsList deals={deals} onEdit={editDeal} onDelete={deleteDeal} onDuplicate={duplicateDeal} onImportDeals={importDeals} />
             )}
             {activeTab === 'new-deal' && !isViewer && (
-              <NewDeal onSave={saveDeal} editingDeal={editingDeal}
-                onCancel={editingDeal ? () => { setEditingDeal(null); setActiveTab('deals'); } : null} />
+              <NewDeal onSave={saveDeal} editingDeal={editingDeal} onCancel={editingDeal ? () => { setEditingDeal(null); setActiveTab('deals'); } : null} />
             )}
             {activeTab === 'optimizer' && <Optimizer deals={deals} />}
-            {activeTab === 'hedging'   && <Hedging   deals={deals} />}
-            {activeTab === 'pricing'   && <Pricing   marketPrices={marketPrices} />}
-            {activeTab === 'freight'   && (
-              <Freight deals={deals} onFreightSaved={saveFreight} />
-            )}
-            {activeTab === 'lots'      && (
-              <Lots deals={deals} onLotsUpdated={saveLots} />
-            )}
-            {activeTab === 'pnl'       && <PnL       deals={deals} marketPrices={marketPrices} />}
-            {activeTab === 'lc'        && <LCChecker />}
-            {activeTab === 'risk'      && <RiskMatrix deals={deals} />}
-            {activeTab === 'spreads'   && <Spreads />}
-            {activeTab === 'rolling'   && <Rolling deals={deals} />}
+            {activeTab === 'hedging' && <Hedging deals={deals} />}
+            {activeTab === 'pricing' && <Pricing marketPrices={marketPrices} />}
+            {activeTab === 'freight' && <Freight deals={deals} onFreightSaved={saveFreight} />}
+            {activeTab === 'lots' && <Lots deals={deals} onLotsUpdated={saveLots} />}
+            {activeTab === 'pnl' && <PnL deals={deals} marketPrices={marketPrices} />}
+            {activeTab === 'lc' && <LCChecker />}
+            {activeTab === 'risk' && <RiskMatrix deals={deals} />}
+            {activeTab === 'spreads' && <Spreads />}
+            {activeTab === 'rolling' && <Rolling deals={deals} />}
             {activeTab === 'platts-board' && (
-              <PlattsBoard
-                plattsDataset={plattsDataset}
-                setMarketPrice={setMarketPrice}
-                deals={deals}
-                onPushToDeal={pushMopToDeal}
-              />
+              <PlattsBoard plattsDataset={plattsDataset} setMarketPrice={setMarketPrice} deals={deals} onPushToDeal={pushMopToDeal} />
             )}
-            {activeTab === 'platts'    && (
-              <PlattsImport
-                setMarketPrice={setMarketPrice}
-                marketPrices={marketPrices}
-                onDatasetLoaded={setPlattsDataset}
-              />
+            {activeTab === 'platts' && (
+              <PlattsImport setMarketPrice={setMarketPrice} marketPrices={marketPrices} onDatasetLoaded={setPlattsDataset} />
             )}
             {activeTab === 'documents' && <Documents deals={deals} />}
             {activeTab === 'resources' && <Resources />}
-            {activeTab === 'profile'   && (
-              <MyProfile currentUser={currentUser} onRestoreDeals={restoreDeals} />
-            )}
-            {activeTab === 'users' && isAdmin && (
-              <UserManagement currentUser={currentUser} onUserUpdate={setCurrentUser} />
-            )}
+            {activeTab === 'profile' && <MyProfile currentUser={currentUser} onRestoreDeals={restoreDeals} />}
+            {activeTab === 'users' && isAdmin && <UserManagement currentUser={currentUser} onUserUpdate={setCurrentUser} />}
           </div>
         </main>
       </div>
