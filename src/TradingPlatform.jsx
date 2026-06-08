@@ -33,8 +33,9 @@ import PlattsImport  from './modules/PlattsImport.jsx';
 import PlattsBoard   from './modules/PlattsBoard.jsx';
 import Rolling       from './modules/Rolling.jsx';
 import Documents     from './modules/Documents.jsx';
-import Lots          from './modules/Lots.jsx';
-import Advisor       from './modules/Advisor.jsx';
+import Lots             from './modules/Lots.jsx';
+import Advisor          from './modules/Advisor.jsx';
+import DealManagerAgent from './modules/DealManagerAgent.jsx';
 
 // ── Dark mode initialisation synchrone (évite le flash) ──────────
 function getInitialDarkMode() {
@@ -274,8 +275,9 @@ export default function TradingPlatform() {
 
   // ── Navigation ────────────────────────────────────────────────
   const nav = [
-    { id: 'advisor',   label: 'Conseiller',         icon: Bot,             section: 'main' },
-    { id: 'dashboard', label: 'Tableau de bord',  icon: LayoutDashboard, section: 'main' },
+    { id: 'advisor',            label: 'Conseiller',         icon: Bot,             section: 'main' },
+    { id: 'deal-manager-agent', label: 'Gestionnaire deals', icon: Bot,             section: 'main' },
+    { id: 'dashboard',          label: 'Tableau de bord',    icon: LayoutDashboard, section: 'main' },
     { id: 'market',    label: 'Marché temps réel', icon: Activity,        section: 'main' },
     { id: 'curve',     label: 'Courbe à terme',    icon: Layers,          section: 'main' },
     { id: 'deals',     label: 'Mes deals',         icon: ScrollText,      section: 'deals' },
@@ -381,10 +383,10 @@ export default function TradingPlatform() {
         <main className="flex-1 overflow-auto">
           <div className="max-w-7xl mx-auto p-6 lg:p-8">
             {activeTab === 'advisor' && (
-              <Advisor
-                currentUser={currentUser}
-                marketPrices={marketPrices}
-              />
+              <Advisor currentUser={currentUser} marketPrices={marketPrices} />
+            )}
+            {activeTab === 'deal-manager-agent' && (
+              <DealManagerAgent deals={deals} marketPrices={marketPrices} plattsDataset={plattsDataset} />
             )}
             {activeTab === 'dashboard' && (
               <Dashboard deals={deals} goTo={setActiveTab}
