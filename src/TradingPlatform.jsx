@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FilePlus2, ScrollText, TrendingUp, TrendingDown,
   DollarSign, Anchor, BarChart3, FileCheck2, ShieldAlert, Globe,
   Activity, Layers, Lightbulb, Users, User, LogOut, Moon, Sun,
-  FileSpreadsheet, RefreshCw, ClipboardList, Zap, Package, MessageSquare,
+  FileSpreadsheet, RefreshCw, ClipboardList, Zap, Package, Bot,
 } from 'lucide-react';
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
@@ -34,7 +34,7 @@ import PlattsBoard   from './modules/PlattsBoard.jsx';
 import Rolling       from './modules/Rolling.jsx';
 import Documents     from './modules/Documents.jsx';
 import Lots          from './modules/Lots.jsx';
-import AgentChat     from './modules/AgentChat.jsx';
+import Advisor       from './modules/Advisor.jsx';
 
 // ── Dark mode initialisation synchrone (évite le flash) ──────────
 function getInitialDarkMode() {
@@ -240,7 +240,7 @@ export default function TradingPlatform() {
 
   // ── Navigation ────────────────────────────────────────────────
   const nav = [
-    { id: 'agent',     label: 'Agent conseiller',  icon: MessageSquare,   section: 'main' },
+    { id: 'advisor',   label: 'Conseiller',         icon: Bot,             section: 'main' },
     { id: 'dashboard', label: 'Tableau de bord',  icon: LayoutDashboard, section: 'main' },
     { id: 'market',    label: 'Marché temps réel', icon: Activity,        section: 'main' },
     { id: 'curve',     label: 'Courbe à terme',    icon: Layers,          section: 'main' },
@@ -346,11 +346,10 @@ export default function TradingPlatform() {
         {/* ── Main content ─────────────────────────────────────── */}
         <main className="flex-1 overflow-auto">
           <div className="max-w-7xl mx-auto p-6 lg:p-8">
-            {activeTab === 'agent' && (
-              <AgentChat
-                deals={deals}
+            {activeTab === 'advisor' && (
+              <Advisor
+                currentUser={currentUser}
                 marketPrices={marketPrices}
-                plattsDataset={plattsDataset}
               />
             )}
             {activeTab === 'dashboard' && (
