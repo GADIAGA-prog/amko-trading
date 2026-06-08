@@ -3,7 +3,7 @@ import {
   LayoutDashboard, FilePlus2, ScrollText, TrendingUp, TrendingDown,
   DollarSign, Anchor, BarChart3, FileCheck2, ShieldAlert, Globe,
   Activity, Layers, Lightbulb, Users, User, LogOut, Moon, Sun,
-  FileSpreadsheet, RefreshCw, ClipboardList, Zap, Package, Bot,
+  FileSpreadsheet, RefreshCw, ClipboardList, Zap, Package, Bot, ShieldCheck,
 } from 'lucide-react';
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
@@ -35,7 +35,8 @@ import Rolling       from './modules/Rolling.jsx';
 import Documents     from './modules/Documents.jsx';
 import Lots             from './modules/Lots.jsx';
 import Advisor          from './modules/Advisor.jsx';
-import DealManagerAgent from './modules/DealManagerAgent.jsx';
+import DealManagerAgent    from './modules/DealManagerAgent.jsx';
+import FxPricingValidator  from './modules/FxPricingValidator.jsx';
 
 // ── Dark mode initialisation synchrone (évite le flash) ──────────
 function getInitialDarkMode() {
@@ -236,6 +237,13 @@ export default function TradingPlatform() {
     setDeals(ds => ds.map(d => d.id === dealId ? { ...d, lots } : d));
   };
 
+  // PricingValidation FX → enregistrer dans un deal
+  const savePricingValidation = (dealId, pvData) => {
+    setDeals(ds => ds.map(d =>
+      d.id === dealId ? { ...d, pricingValidation: pvData } : d,
+    ));
+  };
+
   // Pricing → enregistrer dans un deal (+ mise à jour de estimatedPrice)
   const savePricing = (dealId, pricingData) => {
     setDeals(ds => ds.map(d =>
@@ -289,7 +297,8 @@ export default function TradingPlatform() {
     { id: 'freight',   label: 'Fret (WS)',         icon: Anchor,          section: 'tools' },
     { id: 'pnl',       label: 'P&L',              icon: BarChart3,       section: 'tools' },
     { id: 'lc',        label: 'LC Checker',        icon: FileCheck2,      section: 'tools' },
-    { id: 'risk',      label: 'Risques',           icon: ShieldAlert,     section: 'tools' },
+    { id: 'risk',          label: 'Risques',           icon: ShieldAlert,  section: 'tools' },
+    { id: 'fx-pricing',   label: 'FX Pricing',        icon: ShieldCheck,  section: 'tools' },
     { id: 'spreads',  label: 'Spreads',           icon: TrendingUp,      section: 'tools' },
     { id: 'rolling',  label: 'Rolling',           icon: RefreshCw,       section: 'tools' },
     { id: 'platts-board', label: 'Platts Board',   icon: Zap,             section: 'tools' },
@@ -421,6 +430,13 @@ export default function TradingPlatform() {
             {activeTab === 'pnl'       && <PnL       deals={deals} marketPrices={marketPrices} />}
             {activeTab === 'lc'        && <LCChecker />}
             {activeTab === 'risk'      && <RiskMatrix deals={deals} />}
+            {activeTab === 'fx-pricing' && (
+              <FxPricingValidator
+                deals={deals}
+                onPricingValidated={savePricingValidation}
+                currentUser={currentUser}
+              />
+            )}
             {activeTab === 'spreads'   && <Spreads />}
             {activeTab === 'rolling'   && <Rolling deals={deals} />}
             {activeTab === 'platts-board' && (

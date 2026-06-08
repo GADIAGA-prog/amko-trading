@@ -29,6 +29,43 @@ function suggestParams(deal) {
   };
 }
 
+// ── Lecture et recommandation FX à partir de pricingValidation ───
+function fxInsight(pv) {
+  if (!pv) return null;
+  const eco  = pv.economics  || {};
+  const arb  = pv.arbitrage  || {};
+  const vrd  = pv.verdict    || {};
+  const nmf  = eco.netMarginForward;
+  const nms  = eco.netMarginSpot;
+  const pmtf = eco.marginPerMTForward;
+  const mc   = pv.marginCurrency || 'USD';
+
+  let rec = '';
+  if (nmf != null) {
+    if (nmf > nms) {
+      rec = `Le forward améliore la marge de ${((nmf - nms) / (nms || 1) * 100).toFixed(1)} %. Recommandé de couvrir ${arb.recommendedHedgeCurrency || 'USD'}/${mc} au taux forward.`;
+    } else if (nmf < nms && nmf > 0) {
+      rec = `Le forward réduit légèrement la marge attendue mais protège contre une dégradation FX. Recommandé si la priorité est la sécurisation.`;
+    } else if (nmf <= 0) {
+      rec = `NO-GO FX : marge forward négative (${nmf?.toFixed(0)} ${mc}). Renégocier le prix, la prime ou le fret.`;
+    }
+  }
+  if (arb.bestSaleCurrency) {
+    rec += ` Devise de facturation optimale : ${arb.bestSaleCurrency}.`;
+  }
+  return {
+    verdict:       vrd.status  || 'N/A',
+    netMarginFwd:  nmf,
+    marginPerMT:   pmtf,
+    marginCcy:     mc,
+    recommendation: rec,
+    bestSaleCcy:   arb.bestSaleCurrency || null,
+    hedgeAmount:   arb.recommendedHedgeAmount || 0,
+    hedgeCcy:      arb.recommendedHedgeCurrency || null,
+    fwdRate:       arb.recommendedForwardRate   || null,
+  };
+}
+
 function analyse(deal) {
   const alerts = [];
   const actions = [];
@@ -43,9 +80,22 @@ function analyse(deal) {
   if (Number(deal.hedgeRatio || 0) > 0 && Number(deal.hedgeRatio) < 80) { alerts.push('couverture faible'); actions.push(`proposer hedge ratio : ${proposals.hedgeRatio}`); }
   if (Number(deal.tolerance || 0) > 10) { alerts.push('tolérance élevée'); actions.push(`proposer tolérance : ${proposals.tolerance}`); }
 
+  // Prise en compte du pricingValidation FX
+  const fx = fxInsight(deal.pricingValidation);
+  if (!deal.pricingValidation) {
+    alerts.push('pricing FX non validé');
+    actions.push('Ouvrir FX Pricing Validator pour valider le pricing et l\'arbitrage FX');
+  } else if (fx?.verdict === 'NO_GO') {
+    alerts.push(`pricing FX : NO-GO (marge forward ${fx.netMarginFwd?.toFixed(0)} ${fx.marginCcy})`);
+    actions.push(fx.recommendation || 'Renégocier le deal');
+  } else if (fx?.verdict === 'GO_WITH_CONDITIONS') {
+    alerts.push('pricing FX sous conditions');
+    actions.push(fx.recommendation || 'Lever les conditions dans FX Pricing Validator');
+  }
+
   const level = alerts.length >= 5 ? 'Critique' : alerts.length >= 3 ? 'Élevé' : alerts.length ? 'Normal' : 'Faible';
   const decision = level === 'Critique' ? 'NO-GO temporaire' : level === 'Élevé' ? 'GO sous conditions' : 'GO sous réserve de validation documentaire';
-  return { level, alerts, actions, proposals, decision };
+  return { level, alerts, actions, proposals, decision, fxInsight: fx };
 }
 
 function contextFrom(deals) {
@@ -63,8 +113,12 @@ function contextFrom(deals) {
       incoterm: d.incoterm || '',
       tolerance: d.tolerance || '',
       laycan: `${d.laycanFrom || '?'} → ${d.laycanTo || '?'}`,
-      freight: !!d.freight,
-      hedge: d.hedgeRatio || '',
+      freight:       !!d.freight,
+      hedge:         d.hedgeRatio || '',
+      pricingFxStatus: d.pricingValidation?.verdict?.status || 'non validé',
+      fxMarginFwd:   d.pricingValidation?.economics?.netMarginForward ?? null,
+      fxMarginCcy:   d.pricingValidation?.marginCurrency || 'USD',
+      bestSaleCcy:   d.pricingValidation?.arbitrage?.bestSaleCurrency || null,
       ...diagnostic,
     };
   });
@@ -75,7 +129,11 @@ function line(d) {
 }
 
 function proposalBlock(d) {
-  const p = d.proposals;
+  const p  = d.proposals;
+  const fx = d.fxInsight;
+  const fxBlock = fx
+    ? `\n### Verdict FX Pricing — ${d.id || 'deal'}\n- Verdict : ${fx.verdict}\n- Marge nette forward : ${fx.netMarginFwd != null ? fx.netMarginFwd.toFixed(0) + ' ' + fx.marginCcy : 'non calculée'}\n- Marge/MT forward : ${fx.marginPerMT != null ? fx.marginPerMT.toFixed(2) + ' $/MT' : 'N/A'}\n- Devise de facturation optimale : ${fx.bestSaleCcy || 'N/A'}\n- Montant à couvrir : ${fx.hedgeAmount ? fx.hedgeAmount.toFixed(0) + ' ' + fx.hedgeCcy : 'N/A'}\n- Recommandation : ${fx.recommendation || 'Valider via FX Pricing Validator'}`
+    : '\n### FX Pricing\n- Pricing FX non encore validé — ouvrir le module FX Pricing Validator.';
   return `### Propositions de paramètres — ${d.id || 'deal'}
 - Source prix proposée : ${p.priceSource}
 - Marker proposé : ${p.priceMarker}
@@ -88,7 +146,7 @@ function proposalBlock(d) {
 - Incoterm : ${p.incoterm}
 - Laycan : ${p.laycan}
 - Inspection : ${p.inspection}
-- Documents : ${p.documents}`;
+- Documents : ${p.documents}${fxBlock}`;
 }
 
 function portfolioAnswer(items) {

@@ -132,6 +132,7 @@ export default function DealsList({ deals, onEdit, onDelete, onDuplicate, onImpo
                     <th className="py-3 px-4">Incoterm</th>
                     <th className="py-3 px-4">Laycan</th>
                     <th className="py-3 px-4">Statut</th>
+                    <th className="py-3 px-4">Pricing FX</th>
                     <th className="py-3 px-4 w-36">Actions</th>
                   </tr>
                 </thead>
@@ -153,6 +154,32 @@ export default function DealsList({ deals, onEdit, onDelete, onDuplicate, onImpo
                         <span className="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded">
                           {d.status}
                         </span>
+                      </td>
+                      {/* Colonne FX Pricing Validator */}
+                      <td className="py-2 px-4">
+                        {d.pricingValidation ? (() => {
+                          const pv = d.pricingValidation;
+                          const s  = pv.verdict?.status;
+                          const bg = s === 'GO' ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300' :
+                                     s === 'GO_WITH_CONDITIONS' ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-300' :
+                                     'bg-red-50 dark:bg-red-900/20 border-red-300';
+                          const txt = s === 'GO' ? 'text-emerald-700 dark:text-emerald-400' :
+                                      s === 'GO_WITH_CONDITIONS' ? 'text-amber-700 dark:text-amber-400' :
+                                      'text-red-700 dark:text-red-400';
+                          return (
+                            <div className={`text-xs rounded border px-2 py-1 ${bg}`}>
+                              <div className={`font-bold ${txt}`}>{s === 'GO' ? '✓ GO' : s === 'GO_WITH_CONDITIONS' ? '⚠ Conditions' : '✗ NO-GO'}</div>
+                              {pv.economics?.netMarginForward != null && (
+                                <div className="text-slate-600 dark:text-slate-400">
+                                  {Number(pv.economics.netMarginForward).toLocaleString('fr-FR', {maximumFractionDigits:0})} {pv.marginCurrency}
+                                </div>
+                              )}
+                              {pv.arbitrage?.bestSaleCurrency && <div className="text-slate-500 dark:text-slate-400">→ {pv.arbitrage.bestSaleCurrency}</div>}
+                            </div>
+                          );
+                        })() : (
+                          <span className="text-xs text-slate-400 dark:text-slate-500 italic">—</span>
+                        )}
                       </td>
                       <td className="py-2 px-4">
                         <div className="flex gap-1">
