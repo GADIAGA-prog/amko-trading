@@ -8,7 +8,7 @@ import {
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
 import { uid, todayISO }              from './utils.js';
-import { loadUsers, loadSession, saveSession } from './auth/authHelpers.js';
+import { loadUsers, saveUsers, loadSession, saveSession, genSalt, hashPassword } from './auth/authHelpers.js';
 import { AmkoLogo }                   from './components/Logo.jsx';
 
 import AuthScreen      from './auth/AuthScreen.jsx';
@@ -63,11 +63,36 @@ export default function TradingPlatform() {
   useEffect(() => {
     (async () => {
       try {
+        const users = await loadUsers();
+
+        // Premier accès sur ce navigateur : créer et connecter un admin local
+        // automatiquement, sans afficher de formulaire. Le visiteur peut changer
+        // son mot de passe depuis Mon Profil (mot de passe par défaut : "amko").
+        if (users.length === 0) {
+          const salt  = genSalt();
+          const admin = {
+            id:        'U' + Date.now().toString(36).toUpperCase(),
+            username:  'admin',
+            fullName:  'Administrateur',
+            role:      'admin',
+            salt,
+            hash:      await hashPassword('amko', salt),
+            createdAt: new Date().toISOString(),
+            lastLogin: new Date().toISOString(),
+            active:    true,
+          };
+          await saveUsers([admin]);
+          await saveSession({ userId: admin.id, loggedAt: Date.now(), lastActivity: Date.now() });
+          setCurrentUser(admin);
+          setAuthChecked(true);
+          return;
+        }
+
+        // Session existante → la restaurer si elle n'a pas expiré
         const session = await loadSession();
         if (session) {
           const elapsed = (Date.now() - session.lastActivity) / 60000;
           if (elapsed < SESSION_TIMEOUT_MIN) {
-            const users = await loadUsers();
             const u = users.find(x => x.id === session.userId && x.active);
             if (u) {
               setCurrentUser(u);
@@ -208,6 +233,15 @@ export default function TradingPlatform() {
   // Lots → enregistrer dans un deal
   const saveLots = (dealId, lots) => {
     setDeals(ds => ds.map(d => d.id === dealId ? { ...d, lots } : d));
+  };
+
+  // Pricing → enregistrer dans un deal (+ mise à jour de estimatedPrice)
+  const savePricing = (dealId, pricingData) => {
+    setDeals(ds => ds.map(d =>
+      d.id === dealId
+        ? { ...d, pricing: pricingData, estimatedPrice: String(pricingData.finalPrice) }
+        : d,
+    ));
   };
 
   // MOP Platts → pousser le prix vers estimatedPrice du deal
@@ -369,7 +403,13 @@ export default function TradingPlatform() {
             )}
             {activeTab === 'optimizer' && <Optimizer deals={deals} />}
             {activeTab === 'hedging'   && <Hedging   deals={deals} />}
-            {activeTab === 'pricing'   && <Pricing   marketPrices={marketPrices} />}
+            {activeTab === 'pricing'   && (
+              <Pricing
+                marketPrices={marketPrices}
+                deals={deals}
+                onPricingSaved={savePricing}
+              />
+            )}
             {activeTab === 'freight'   && (
               <Freight deals={deals} onFreightSaved={saveFreight} />
             )}
