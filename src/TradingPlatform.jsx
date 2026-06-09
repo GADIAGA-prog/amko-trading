@@ -8,6 +8,7 @@ import {
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
 import { uid, todayISO }              from './utils.js';
+import { buildDatasetFromStore }      from './utils/plattsStore.js';
 import { loadUsers, saveUsers, loadSession, saveSession, genSalt, hashPassword } from './auth/authHelpers.js';
 import { AmkoLogo }                   from './components/Logo.jsx';
 
@@ -53,7 +54,21 @@ export default function TradingPlatform() {
   const [editingDeal,  setEditingDeal]  = useState(null);
   const [loaded,       setLoaded]       = useState(false);
   const [marketPrices,  setMarketPrices]  = useState({ brent: '', wti: '', gasoil: '' });
-  const [plattsDataset, setPlattsDataset] = useState(null);
+  const [plattsDataset, setPlattsDataset] = useState(() => {
+    const ds = buildDatasetFromStore();
+    return ds.dates?.length ? ds : null;
+  });
+
+  // ── Recharger Platts depuis la base consolidée locale ───────────
+  useEffect(() => {
+    const refreshPlatts = () => {
+      const ds = buildDatasetFromStore();
+      setPlattsDataset(ds.dates?.length ? ds : null);
+    };
+    refreshPlatts();
+    window.addEventListener('amko:platts-updated', refreshPlatts);
+    return () => window.removeEventListener('amko:platts-updated', refreshPlatts);
+  }, []);
 
   // ── Persister le thème ────────────────────────────────────────
   useEffect(() => {
