@@ -1,4 +1,5 @@
-export const PLATTS_STORE_KEY = 'amko_platts_consolidated_v1';
+export const PLATTS_STORE_KEY = 'amko_platts_consolidated_v2';
+const LEGACY_PLATTS_KEYS = ['amko_platts_consolidated_v1', 'amko_platts_dataset', 'plattsDataset'];
 
 const CODE_ALIASES = {
   'GAS 1!-ICE': 'GAS1',
@@ -157,5 +158,6 @@ export function buildDatasetFromStore() {
 
 export function clearPlattsStore() {
   localStorage.removeItem(PLATTS_STORE_KEY);
+  LEGACY_PLATTS_KEYS.forEach((key) => localStorage.removeItem(key));
   window.dispatchEvent(new CustomEvent('amko:platts-updated', { detail: null }));
 }
