@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Activity, BarChart3, Calculator, Database, Download, RefreshCw, TrendingUp, Zap } from 'lucide-react';
+import { Activity, BarChart3, Calculator, CalendarDays, Database, Download, RefreshCw, TrendingUp, Zap } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardHeader, CardBody, Select, Button, Field, Input } from '../components/UI.jsx';
 import { fmt } from '../utils.js';
@@ -38,6 +38,14 @@ function getCodeMeta(code, descriptions = {}) {
 
 function getDates(dataset) {
   return Array.isArray(dataset?.dates) ? dataset.dates : Object.keys(dataset?.prices || {}).sort().reverse();
+}
+
+function chooseAvailableDate(inputDate, dates) {
+  if (!inputDate || !dates.length) return '';
+  if (dates.includes(inputDate)) return inputDate;
+  const asc = [...dates].sort();
+  const previousOrSame = asc.filter(d => d <= inputDate).pop();
+  return previousOrSame || asc[0] || dates[0];
 }
 
 function getPrice(dataset, code, date) {
@@ -126,10 +134,12 @@ export default function PlattsBoard({ plattsDataset, setMarketPrice, deals = [],
   const dataset = plattsDataset?.dates?.length ? plattsDataset : localDataset;
   const dates = useMemo(() => getDates(dataset), [dataset]);
   const columns = useMemo(() => dataset?.columns?.length ? dataset.columns : Object.keys(dataset?.prices?.[dates[0]] || {}), [dataset, dates]);
+  const minDate = dates.length ? [...dates].sort()[0] : '';
+  const maxDate = dates.length ? [...dates].sort().slice(-1)[0] : '';
 
   useEffect(() => {
     if (!selectedDate && dates.length) setSelectedDate(dates[0]);
-    if (selectedDate && dates.length && !dates.includes(selectedDate)) setSelectedDate(dates[0]);
+    if (selectedDate && dates.length && !dates.includes(selectedDate)) setSelectedDate(chooseAvailableDate(selectedDate, dates));
   }, [dates, selectedDate]);
 
   useEffect(() => {
@@ -214,6 +224,11 @@ export default function PlattsBoard({ plattsDataset, setMarketPrice, deals = [],
     alert('MOP envoyé vers le deal sélectionné.');
   };
 
+  const handleCalendarDate = (value) => {
+    const chosen = chooseAvailableDate(value, dates);
+    setSelectedDate(chosen);
+  };
+
   if (!dataset || !dates.length) {
     return (
       <div className="space-y-6">
@@ -244,16 +259,22 @@ export default function PlattsBoard({ plattsDataset, setMarketPrice, deals = [],
       </div>
 
       <Card>
-        <CardHeader icon={BarChart3} title="Sélection" />
+        <CardHeader icon={CalendarDays} title="Sélection de la date Platts" subtitle="Choisissez la date dans le calendrier ou dans la liste des dates importées." />
         <CardBody>
-          <div className="grid md:grid-cols-3 gap-4">
-            <Field label="Date Platts">
+          <div className="grid md:grid-cols-4 gap-4">
+            <Field label="Calendrier Platts">
+              <Input type="date" value={selectedDate} min={minDate} max={maxDate} onChange={e => handleCalendarDate(e.target.value)} />
+            </Field>
+            <Field label="Dates importées">
               <Select value={selectedDate} onChange={e => setSelectedDate(e.target.value)}>{dates.map(d => <option key={d} value={d}>{ddmmyyyy(d)}</option>)}</Select>
             </Field>
             <Field label="Produit principal graphique">
               <Select value={chartCodes[0] || ''} onChange={e => setChartCodes([e.target.value])}>{columns.map(code => <option key={code} value={code}>{getCodeMeta(code, dataset.descriptions).name} ({code})</option>)}</Select>
             </Field>
-            <Field label="Date source affichée"><div className="px-3 py-2 rounded border bg-slate-50 dark:bg-slate-800 text-sm">{ddmmyyyy(selectedDate)}</div></Field>
+            <Field label="Date retenue"><div className="px-3 py-2 rounded border bg-slate-50 dark:bg-slate-800 text-sm font-semibold">{ddmmyyyy(selectedDate)}</div></Field>
+          </div>
+          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            Si la date choisie dans le calendrier n’existe pas dans le fichier Platts, la plateforme retient automatiquement la date Platts disponible la plus proche avant cette date.
           </div>
         </CardBody>
       </Card>
