@@ -7,20 +7,44 @@ import { buildDatasetFromStore, clearPlattsStore, loadPlattsStore, mergePlattsDa
 
 const CODE_RE = /^[A-Z]{3,8}\d{2}(-[A-Z]{2,4})?$|^GAS\s?1!?(-[A-Z]+)?$/i;
 
+function dateToISO(year, month, day) {
+  const y = Number(year);
+  const m = Number(month);
+  const d = Number(day);
+  if (!y || !m || !d || m < 1 || m > 12 || d < 1 || d > 31) return null;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return null;
+  return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
 function parseDate(value) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value.toISOString().slice(0, 10);
   if (typeof value === 'number') {
     const d = new Date(Math.round((value - 25569) * 86400 * 1000));
-    if (!Number.isNaN(d.getTime()) && d.getFullYear() > 1990) return d.toISOString().slice(0, 10);
+    if (!Number.isNaN(d.getTime()) && d.getUTCFullYear() > 1990) return d.toISOString().slice(0, 10);
   }
   const s = String(value ?? '').trim();
   if (!s) return null;
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+
   const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
   if (m) {
-    const year = m[3].length === 2 ? `20${m[3]}` : m[3];
-    return `${year}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    const a = Number(m[1]);
+    const b = Number(m[2]);
+    const year = Number(m[3].length === 2 ? `20${m[3]}` : m[3]);
+
+    // Les fichiers Platts téléchargés en Time Series sont généralement en MM/DD/YYYY.
+    // Exemple réel : 06/08/2026 = 08 juin 2026, et 03/31/2026 = 31 mars 2026.
+    // Si le deuxième nombre est > 12, c'est forcément MM/DD/YYYY.
+    if (b > 12) return dateToISO(year, a, b);
+
+    // Si le premier nombre est > 12, c'est forcément DD/MM/YYYY.
+    if (a > 12) return dateToISO(year, b, a);
+
+    // Cas ambigu 06/08/2026 : on privilégie MM/DD/YYYY pour Platts.
+    return dateToISO(year, a, b);
   }
+
   const d = new Date(s);
   return !Number.isNaN(d.getTime()) && d.getFullYear() > 1990 ? d.toISOString().slice(0, 10) : null;
 }
@@ -185,7 +209,7 @@ export default function PlattsImportDynamic({ setMarketPrice, onDatasetLoaded })
       </div>
 
       <Card>
-        <CardHeader icon={Upload} title="Importer un fichier Platts Excel" subtitle="Format supporté : Time Series + codes, Last, descriptions, puis dates/prix." />
+        <CardHeader icon={Upload} title="Importer un fichier Platts Excel" subtitle="Format supporté : Time Series + codes, Last, descriptions, puis dates/prix. Dates Platts lues en MM/DD/YYYY." />
         <CardBody>
           <div onClick={() => fileRef.current?.click()} className="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer border-slate-300 dark:border-slate-700 hover:border-blue-500 hover:bg-slate-50 dark:hover:bg-slate-800">
             <FileSpreadsheet className="w-12 h-12 mx-auto mb-3 text-slate-400" />
