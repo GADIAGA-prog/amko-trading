@@ -34,6 +34,30 @@ function parsePrice(value) {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
+function looksLikeUnitRow(row) {
+  const cells = row.slice(1).map(v => cleanCode(v).toLowerCase()).filter(Boolean);
+  if (!cells.length) return false;
+  const unitHits = cells.filter(v => ['last', 'close', 'mid', 'mean', 'value', 'settlement'].includes(v));
+  return unitHits.length >= Math.max(2, Math.floor(cells.length * 0.5));
+}
+
+function findDescriptionRow(rows, startIndex) {
+  for (let i = startIndex; i < Math.min(rows.length, startIndex + 4); i += 1) {
+    const row = rows[i] || [];
+    const firstCellIsDate = !!parseDate(row[0]);
+    const usefulText = row.slice(1).filter(v => cleanCode(v).length > 4 && !CODE_RE.test(cleanCode(v))).length;
+    if (!firstCellIsDate && usefulText >= 2) return i;
+  }
+  return -1;
+}
+
+function findFirstDataRow(rows, startIndex) {
+  for (let i = startIndex; i < rows.length; i += 1) {
+    if (parseDate(rows[i]?.[0])) return i;
+  }
+  return rows.length;
+}
+
 function parsePlattsWorkbook(wb, sheetName, filename) {
   const sheet = wb.Sheets[sheetName];
   const rows = utils.sheet_to_json(sheet, { header: 1, raw: false, defval: '' });
@@ -46,15 +70,20 @@ function parsePlattsWorkbook(wb, sheetName, filename) {
   const columns = [];
 
   if (codesInHeader.length >= 2) {
-    const codes = first.slice(1);
-    const desc = (rows[1] || []).slice(1).map(v => cleanCode(v));
+    const codes = first.slice(1).map(cleanCode);
+    const unitRowIndex = looksLikeUnitRow(rows[1] || []) ? 1 : -1;
+    const descRowIndex = findDescriptionRow(rows, unitRowIndex >= 0 ? 2 : 1);
+    const dataStartIndex = findFirstDataRow(rows, descRowIndex >= 0 ? descRowIndex + 1 : 1);
+    const desc = descRowIndex >= 0 ? (rows[descRowIndex] || []).slice(1).map(v => cleanCode(v)) : codes;
+
     codes.forEach((c, i) => {
       const code = cleanCode(c);
       if (!code) return;
       columns.push(code);
-      descriptions[code] = desc[i] || code;
+      descriptions[code] = desc[i] && desc[i].toLowerCase() !== 'last' ? desc[i] : code;
     });
-    rows.slice(2).forEach((row) => {
+
+    rows.slice(dataStartIndex).forEach((row) => {
       const date = parseDate(row[0]);
       if (!date) return;
       if (!prices[date]) prices[date] = {};
@@ -156,7 +185,7 @@ export default function PlattsImportDynamic({ setMarketPrice, onDatasetLoaded })
       </div>
 
       <Card>
-        <CardHeader icon={Upload} title="Importer un fichier Platts Excel" subtitle="Chaque nouvel import fusionne les lignes : les nouvelles dates et les nouveaux produits sont ajoutés, les prix existants sont mis à jour." />
+        <CardHeader icon={Upload} title="Importer un fichier Platts Excel" subtitle="Format supporté : Time Series + codes, Last, descriptions, puis dates/prix." />
         <CardBody>
           <div onClick={() => fileRef.current?.click()} className="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer border-slate-300 dark:border-slate-700 hover:border-blue-500 hover:bg-slate-50 dark:hover:bg-slate-800">
             <FileSpreadsheet className="w-12 h-12 mx-auto mb-3 text-slate-400" />
