@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, TrendingUp, AlertTriangle, Activity } from 'lucide-react';
+import { Calculator, TrendingUp, AlertTriangle, Activity, Save, CheckCircle2 } from 'lucide-react';
 import { PRODUCTS, CONTRACTS } from '../constants.js';
 import { fmt } from '../utils.js';
-import { Card, CardHeader, CardBody, Field, Input, Select } from '../components/UI.jsx';
+import { Card, CardHeader, CardBody, Field, Input, Select, Button } from '../components/UI.jsx';
 import { TVAdvancedChart } from '../components/TradingViewWidgets.jsx';
 import { computeHedge } from '../calc/hedgeCalc.js';
 
-export default function Hedging({ deals }) {
+export default function Hedging({ deals, onHedgeSaved }) {
   const [productKey,  setProductKey]  = useState('crude-bonny');
   const [contractKey, setContractKey] = useState('brn-full');
   const [quantity,    setQuantity]    = useState('');
   const [direction,   setDirection]   = useState('short');
   const [linkedDeal,  setLinkedDeal]  = useState('');
   const [hedgeRatio,  setHedgeRatio]  = useState(100);
+  const [entryPrice,  setEntryPrice]  = useState('');
+  const [maturity,    setMaturity]    = useState('');
+  const [bankBroker,  setBankBroker]  = useState('');
+  const [notes,       setNotes]       = useState('');
+  const [savedMsg,    setSavedMsg]    = useState('');
 
   useEffect(() => {
     const productMarker = PRODUCTS[productKey]?.marker;
@@ -30,6 +35,13 @@ export default function Hedging({ deals }) {
         setQuantity(String(d.quantity || ''));
         setDirection(d.dealType === 'buy' ? 'short' : 'long');
         if (d.hedgeRatio) setHedgeRatio(Number(d.hedgeRatio));
+        if (d.hedging) {
+          setContractKey(d.hedging.contractKey || contractKey);
+          setEntryPrice(d.hedging.entryPrice || '');
+          setMaturity(d.hedging.maturity || '');
+          setBankBroker(d.hedging.bankBroker || '');
+          setNotes(d.hedging.notes || '');
+        }
       }
     }
   }, [linkedDeal, deals]);
@@ -37,26 +49,75 @@ export default function Hedging({ deals }) {
   const { product, contract, qty, barrels, hedgedBarrels, lots, lotsRound, overHedge, basisRisk } =
     computeHedge({ productKey, quantity, hedgeRatio, contractKey });
 
+  const saveHedge = () => {
+    if (!linkedDeal) {
+      alert('Sélectionnez d’abord le deal à couvrir.');
+      return;
+    }
+    if (!onHedgeSaved) {
+      alert('La sauvegarde du hedge n’est pas encore raccordée à la plateforme.');
+      return;
+    }
+    const hedgeData = {
+      validated: true,
+      validatedAt: new Date().toISOString(),
+      dealId: linkedDeal,
+      productKey,
+      productName: product.name,
+      contractKey,
+      contractName: contract.name,
+      contractSize: contract.size,
+      contractUnit: contract.unit,
+      tvSymbol: contract.tvSymbol,
+      direction,
+      action: direction === 'short' ? 'SELL_FUTURES' : 'BUY_FUTURES',
+      actionLabel: direction === 'short' ? 'Vendre futures / swap' : 'Acheter futures / swap',
+      physicalQuantityMT: qty,
+      physicalBarrels: barrels,
+      hedgeRatio: Number(hedgeRatio) || 0,
+      hedgedBarrels,
+      theoreticalLots: lots,
+      validatedLots: lotsRound,
+      overHedgeLots: overHedge,
+      effectiveHedgedBarrels: lotsRound * contract.size * (contract.unit === 'bbl' ? 1 : product.bblPerMT),
+      basisRisk,
+      entryPrice: entryPrice ? Number(entryPrice) : null,
+      maturity,
+      bankBroker,
+      notes,
+      status: 'VALIDATED',
+    };
+    onHedgeSaved(linkedDeal, hedgeData);
+    setSavedMsg(`Hedge validé et sauvegardé dans le deal ${linkedDeal}.`);
+    setTimeout(() => setSavedMsg(''), 5000);
+  };
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Hedging — calcul de couverture</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Hedging — calcul et validation de couverture</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Convertir l'exposition physique en nombre de lots futures
+          Convertir l'exposition physique en lots futures puis sauvegarder le hedge validé dans le deal
         </p>
       </div>
+
+      {savedMsg && (
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800 p-3 text-sm text-emerald-800 dark:text-emerald-200">
+          <CheckCircle2 className="w-4 h-4" /> {savedMsg}
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-6">
         <Card>
           <CardHeader icon={Calculator} title="Paramètres" />
           <CardBody>
             <div className="space-y-4">
-              <Field label="Deal lié (optionnel)">
+              <Field label="Deal lié à couvrir" required>
                 <Select value={linkedDeal} onChange={e => setLinkedDeal(e.target.value)}>
-                  <option value="">— Aucun —</option>
+                  <option value="">— Sélectionner un deal —</option>
                   {deals.map(d => (
                     <option key={d.id} value={d.id}>
-                      {d.id} — {PRODUCTS[d.product]?.name} — {fmt(d.quantity, 0)} MT
+                      {d.id} — {PRODUCTS[d.product]?.name || d.product} — {fmt(d.quantity, 0)} MT {d.hedging?.validated ? '— hedge validé' : ''}
                     </option>
                   ))}
                 </Select>
@@ -81,12 +142,12 @@ export default function Hedging({ deals }) {
                 </Select>
               </Field>
               <Field label="Quantité physique (MT)">
-                <Input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="6500" />
+                <Input type="number" value={quantity} onChange={e => setQuantity(e.target.value)} placeholder="15000" />
               </Field>
-              <Field label="Hedge ratio %" hint="Part de l'exposition à couvrir (90-100% recommandé)">
+              <Field label="Hedge ratio %" hint="Part de l'exposition à couvrir. 80-100 % recommandé selon certitude du volume.">
                 <Input type="number" min="0" max="100" value={hedgeRatio} onChange={e => setHedgeRatio(e.target.value)} />
               </Field>
-              <Field label="Contrat futures">
+              <Field label="Contrat futures / swap">
                 <Select value={contractKey} onChange={e => setContractKey(e.target.value)}>
                   <optgroup label="Brent">
                     <option value="brn-full">ICE Brent (BRN) — 1 000 bbl</option>
@@ -108,10 +169,19 @@ export default function Hedging({ deals }) {
               </Field>
               <Field label="Sens du hedge">
                 <Select value={direction} onChange={e => setDirection(e.target.value)}>
-                  <option value="short">Short (vendre des futures) — je couvre un stock long</option>
-                  <option value="long">Long (acheter des futures) — je couvre une vente à découvert</option>
+                  <option value="short">Short — vendre futures/swap pour couvrir un achat physique ou stock long</option>
+                  <option value="long">Long — acheter futures/swap pour couvrir une vente physique à prix fixe</option>
                 </Select>
               </Field>
+              <div className="grid md:grid-cols-3 gap-3">
+                <Field label="Prix/taux d’entrée"><Input type="number" step="0.01" value={entryPrice} onChange={e => setEntryPrice(e.target.value)} placeholder="ex. 1149.25" /></Field>
+                <Field label="Maturité"><Input type="date" value={maturity} onChange={e => setMaturity(e.target.value)} /></Field>
+                <Field label="Banque / broker"><Input value={bankBroker} onChange={e => setBankBroker(e.target.value)} placeholder="ex. Banque / ICE broker" /></Field>
+              </div>
+              <Field label="Notes de validation"><Input value={notes} onChange={e => setNotes(e.target.value)} placeholder="ex. Couverture 80% moyenne du mois Platts" /></Field>
+              <Button variant="primary" icon={Save} onClick={saveHedge} disabled={!linkedDeal}>
+                Valider & sauvegarder le hedge dans le deal
+              </Button>
             </div>
           </CardBody>
         </Card>
