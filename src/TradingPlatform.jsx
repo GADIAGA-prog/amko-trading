@@ -4,7 +4,7 @@ import {
   DollarSign, Anchor, BarChart3, FileCheck2, ShieldAlert, Globe,
   Activity, Layers, Lightbulb, Users, User, LogOut, Moon, Sun,
   FileSpreadsheet, RefreshCw, ClipboardList, Zap, Package, Bot, ShieldCheck,
-  ChevronDown, Landmark,
+  ChevronDown, Landmark, Flame,
 } from 'lucide-react';
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
@@ -40,9 +40,11 @@ import Advisor          from './modules/Advisor.jsx';
 import DealManagerLocal    from './modules/DealManagerLocal.jsx';
 import FxPricingValidator  from './modules/FxPricingValidator.jsx';
 import FxForward           from './modules/FxForward.jsx';
+import ICEBoard            from './modules/ICEBoard.jsx';
 
 const TAB_SECTION_MAP = {
   advisor: 'main', 'deal-manager-agent': 'main', dashboard: 'main', market: 'main', curve: 'main',
+  'ice-board': 'main',
   deals: 'deals', 'new-deal': 'deals', lots: 'deals', optimizer: 'deals',
   hedging: 'tools', pricing: 'tools', freight: 'tools', pnl: 'tools', lc: 'tools',
   risk: 'tools', 'fx-pricing': 'tools', 'fx-forward': 'tools', spreads: 'tools', rolling: 'tools',
@@ -274,6 +276,7 @@ export default function TradingPlatform() {
     { id: 'deal-manager-agent', label: 'Gestionnaire deals', icon: Bot,             section: 'main' },
     { id: 'dashboard',          label: 'Tableau de bord',    icon: LayoutDashboard, section: 'main' },
     { id: 'market',    label: 'Marché temps réel', icon: Activity,        section: 'main' },
+    { id: 'ice-board', label: 'ICE Futures',       icon: Flame,           section: 'main' },
     { id: 'curve',     label: 'Courbe à terme',    icon: Layers,          section: 'main' },
     { id: 'deals',     label: 'Mes deals',         icon: ScrollText,      section: 'deals' },
     ...(!isViewer ? [{ id: 'new-deal', label: 'Nouveau deal', icon: FilePlus2, section: 'deals' }] : []),
@@ -397,6 +400,7 @@ export default function TradingPlatform() {
             {activeTab === 'deal-manager-agent' && <DealManagerLocal deals={deals} marketPrices={marketPrices} plattsDataset={plattsDataset} />}
             {activeTab === 'dashboard'          && <Dashboard deals={deals} goTo={navigateTo} marketPrices={marketPrices} setMarketPrice={setMarketPrice} />}
             {activeTab === 'market'    && <Market />}
+            {activeTab === 'ice-board' && <ICEBoard />}
             {activeTab === 'curve'     && <ForwardCurve />}
             {activeTab === 'deals'     && <DealsList deals={deals} onEdit={editDeal} onDelete={deleteDeal} onDuplicate={duplicateDeal} onImportDeals={importDeals} />}
             {activeTab === 'new-deal' && !isViewer && (

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FilePlus2, Ship, DollarSign, Droplets, ScrollText, Save } from 'lucide-react';
+import { FilePlus2, Ship, DollarSign, Droplets, ScrollText, Save, Zap } from 'lucide-react';
 import { PRODUCTS, INCOTERMS, VESSELS, PRICE_SOURCES } from '../constants.js';
 import { uid, todayISO } from '../utils.js';
 import { Card, CardHeader, CardBody, Field, Input, Select, Textarea, Button } from '../components/UI.jsx';
@@ -71,6 +71,67 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
     onSave(form);
   };
 
+  // ── Pré-remplissage deal exemple Vitol → Lomé ───────────────
+  const loadExampleBuy = () => {
+    setForm(f => ({
+      ...f,
+      dealType: 'buy',
+      counterparty: 'Vitol S.A.',
+      counterpartyTier: 'first-class',
+      counterpartyCountry: 'Suisse',
+      product: 'gasoil',
+      quantity: '15000',
+      tolerance: 5,
+      incoterm: 'FOB',
+      loadPort: 'Augusta (MED)',
+      dischargePort: 'Lomé, Togo',
+      laycanFrom: '2026-06-01',
+      laycanTo: '2026-06-15',
+      blDate: '2026-06-01',
+      priceSource: 'Platts',
+      priceMarker: 'gasoil',
+      differential: '65.62',
+      estimatedPrice: '1126.62',
+      paymentTerm: 'LC at sight',
+      bankRating: 'first-class',
+      hedgeRatio: 100,
+      vessel: 'MR2 (TBN)',
+      inspector: 'SGS',
+      status: 'contracted',
+      notes: 'Gasoil 0,1%S FOB MED. Pricing: Platts MED Gasoil 0,1%S moyenne 5j autour BL (01/06/2026). Prime Vitol: +65,62 USD/MT. Platts référence: 1 061 USD/MT.',
+    }));
+  };
+
+  const loadExampleSell = () => {
+    setForm(f => ({
+      ...f,
+      dealType: 'sell',
+      counterparty: 'Client Lomé',
+      counterpartyTier: 'standard',
+      counterpartyCountry: 'Togo',
+      product: 'gasoil',
+      quantity: '15000',
+      tolerance: 5,
+      incoterm: 'DAP',
+      loadPort: 'Augusta (MED)',
+      dischargePort: 'Lomé, Togo',
+      laycanFrom: '2026-06-01',
+      laycanTo: '2026-06-15',
+      blDate: '2026-06-01',
+      priceSource: 'Platts',
+      priceMarker: 'gasoil',
+      differential: '139',
+      estimatedPrice: '1200',
+      paymentTerm: 'J+30 ouvrables (LC irrévocable)',
+      bankRating: 'A',
+      hedgeRatio: 0,
+      vessel: 'MR2 (TBN)',
+      inspector: 'SGS',
+      status: 'contracted',
+      notes: 'Gasoil 0,1%S DAP Lomé. Pricing: Platts MED Gasoil 0,1%S moyenne quotidienne BL→livraison (01/06→15/06/2026). Prime AMKO: +139 USD/MT. Prix vente cible: 1 200 USD/MT. Paiement client en XOF J+30 ouvrables. Couverture FX forward USD/XOF requise.',
+    }));
+  };
+
   const selectedPlatts = String(form.product || '').startsWith('platts:')
     ? getLatestPlattsPrice(String(form.product).replace('platts:', ''))
     : null;
@@ -84,7 +145,25 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Capture du deal avec produits issus du Platts importé</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {!editingDeal && (
+            <>
+              <button
+                onClick={loadExampleBuy}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-amber-100 text-amber-800 border border-amber-300 hover:bg-amber-200 transition"
+                title="Pré-remplir avec le deal d'achat Vitol Gasoil FOB MED">
+                <Zap className="w-3.5 h-3.5" />
+                Exemple — Achat Vitol
+              </button>
+              <button
+                onClick={loadExampleSell}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-green-100 text-green-800 border border-green-300 hover:bg-green-200 transition"
+                title="Pré-remplir avec le deal de vente Client Lomé">
+                <Zap className="w-3.5 h-3.5" />
+                Exemple — Vente Client Lomé
+              </button>
+            </>
+          )}
           {onCancel && <Button variant="secondary" onClick={onCancel}>Annuler</Button>}
           <Button variant="primary" icon={Save} onClick={submit}>Enregistrer</Button>
         </div>
