@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, BarChart3 } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, AlertTriangle } from 'lucide-react';
 import { PRODUCTS } from '../constants.js';
 import { fmt, fmtUSD } from '../utils.js';
 import { Card, CardHeader, CardBody, Field, Input, Select, Row, Button } from '../components/UI.jsx';
 import { computePnL } from '../calc/pnlCalc.js';
 
-export default function PnL({ deals, marketPrices }) {
+export default function PnL({ deals, marketPrices, onFreightSaved }) {
   const [selectedDealId, setSelectedDealId] = useState('');
   const [buyPrice,   setBuyPrice]   = useState('');
   const [sellPrice,  setSellPrice]  = useState('');
@@ -25,7 +25,7 @@ export default function PnL({ deals, marketPrices }) {
     if (!d) return;
     setQuantity(String(d.quantity || ''));
     setBblPerMT(String(PRODUCTS[d.product]?.bblPerMT || 7.5));
-    if (d.estimatedPrice) {
+    if (d.estimatedPrice != null && d.estimatedPrice !== '') {
       if (d.dealType === 'buy') setBuyPrice(String(d.estimatedPrice));
       else setSellPrice(String(d.estimatedPrice));
     }
@@ -50,7 +50,7 @@ export default function PnL({ deals, marketPrices }) {
   const refBrent = marketPrices?.brent;
   const useBrentRef = () => { if (refBrent) { setBuyPrice(String(refBrent)); setSellPrice(String(refBrent)); } };
 
-  const { totalBbl, revenue, cogs, grossMargin, costs, netMargin, marginPerBbl, marginPct } =
+  const { totalBbl, revenue, cogs, grossMargin, costs, netMargin, marginPerBbl, marginPct, warnings } =
     computePnL({ buyPrice, sellPrice, quantity, bblPerMT, freight, financing, inspection, insurance, demurrage, other });
 
   return (
@@ -73,6 +73,13 @@ export default function PnL({ deals, marketPrices }) {
           </Select>
         </CardBody>
       </Card>
+
+      {warnings.length > 0 && (
+        <div className="flex items-start gap-3 px-4 py-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-md text-sm text-amber-800 dark:text-amber-300">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+          <ul className="space-y-0.5">{warnings.map(w => <li key={w}>{w}</li>)}</ul>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-6">
         <Card>
@@ -110,6 +117,12 @@ export default function PnL({ deals, marketPrices }) {
                   <span className="text-xs text-emerald-600 dark:text-emerald-400 font-semibold">
                     ✓ Fret du deal
                   </span>
+                )}
+                {freightSource === 'manual' && selectedDealId && freight && onFreightSaved && (
+                  <button onClick={() => onFreightSaved(selectedDealId, Number(freight))}
+                    className="text-xs text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1">
+                    ↑ Enregistrer ce fret dans le deal
+                  </button>
                 )}
               </div>
               <div className="grid grid-cols-2 gap-3">

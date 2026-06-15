@@ -5,6 +5,12 @@ export function computePnL({
   buyPrice, sellPrice, quantity, bblPerMT,
   freight, financing, inspection, insurance, demurrage, other,
 }) {
+  const warnings = [];
+
+  if (!buyPrice && buyPrice !== 0)   warnings.push("Prix d'achat non renseigné");
+  if (!sellPrice && sellPrice !== 0) warnings.push('Prix de vente non renseigné');
+  if (!quantity  || Number(quantity) <= 0) warnings.push('Quantité non renseignée');
+
   const qty         = Number(quantity) || 0;
   const bp          = Number(buyPrice)  || 0;
   const sp          = Number(sellPrice) || 0;
@@ -26,5 +32,5 @@ export function computePnL({
   const marginPerBbl = totalBbl > 0 ? netMargin / totalBbl : 0;
   const marginPct    = revenue   > 0 ? (netMargin / revenue) * 100 : 0;
 
-  return { totalBbl, revenue, cogs, grossMargin, costs, netMargin, marginPerBbl, marginPct };
+  return { totalBbl, revenue, cogs, grossMargin, costs, netMargin, marginPerBbl, marginPct, warnings };
 }

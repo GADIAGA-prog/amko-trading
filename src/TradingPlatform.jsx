@@ -4,6 +4,7 @@ import {
   DollarSign, Anchor, BarChart3, FileCheck2, ShieldAlert, Globe,
   Activity, Layers, Lightbulb, Users, User, LogOut, Moon, Sun,
   FileSpreadsheet, RefreshCw, ClipboardList, Zap, Package, Bot, ShieldCheck,
+  ChevronDown,
 } from 'lucide-react';
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
@@ -35,8 +36,17 @@ import Rolling       from './modules/Rolling.jsx';
 import Documents     from './modules/Documents.jsx';
 import Lots             from './modules/Lots.jsx';
 import Advisor          from './modules/Advisor.jsx';
-import DealManagerAgent    from './modules/DealManagerAgent.jsx';
+import DealManagerLocal    from './modules/DealManagerLocal.jsx';
 import FxPricingValidator  from './modules/FxPricingValidator.jsx';
+
+const TAB_SECTION_MAP = {
+  advisor: 'main', 'deal-manager-agent': 'main', dashboard: 'main', market: 'main', curve: 'main',
+  deals: 'deals', 'new-deal': 'deals', lots: 'deals', optimizer: 'deals',
+  hedging: 'tools', pricing: 'tools', freight: 'tools', pnl: 'tools', lc: 'tools',
+  risk: 'tools', 'fx-pricing': 'tools', spreads: 'tools', rolling: 'tools',
+  'platts-board': 'tools', platts: 'tools',
+  documents: 'docs', resources: 'hub', profile: 'account', users: 'account',
+};
 
 // ── Dark mode initialisation synchrone (évite le flash) ──────────
 function getInitialDarkMode() {
@@ -52,8 +62,9 @@ export default function TradingPlatform() {
   const [deals,        setDeals]        = useState([]);
   const [editingDeal,  setEditingDeal]  = useState(null);
   const [loaded,       setLoaded]       = useState(false);
-  const [marketPrices,  setMarketPrices]  = useState({ brent: '', wti: '', gasoil: '' });
+  const [marketPrices,  setMarketPrices]  = useState({ brent: '', wti: '', gasoil: '', dubai: '', jet: '' });
   const [plattsDataset, setPlattsDataset] = useState(null);
+  const [openSections,  setOpenSections]  = useState(() => new Set([TAB_SECTION_MAP['dashboard'] ?? 'main']));
 
   // ── Persister le thème ────────────────────────────────────────
   useEffect(() => {
@@ -163,7 +174,7 @@ export default function TradingPlatform() {
   }, [deals, loaded, dealsKey]);
 
   // ── Handlers ─────────────────────────────────────────────────
-  const handleAuth = (user) => { setCurrentUser(user); setActiveTab('dashboard'); };
+  const handleAuth = (user) => { setCurrentUser(user); navigateTo('dashboard'); };
 
   const logout = async () => {
     if (!window.confirm('Se déconnecter ?')) return;
@@ -184,7 +195,7 @@ export default function TradingPlatform() {
       return [...ds, deal];
     });
     setEditingDeal(null);
-    setActiveTab('deals');
+    navigateTo('deals');
   };
 
   const deleteDeal = (id) => {
@@ -194,7 +205,7 @@ export default function TradingPlatform() {
 
   const editDeal = (d) => {
     if (isViewer) { alert('Les utilisateurs Viewer ne peuvent pas modifier de deals.'); return; }
-    setEditingDeal(d); setActiveTab('new-deal');
+    setEditingDeal(d); navigateTo('new-deal');
   };
 
   // Duplicate: copie le deal avec nouvel ID, statut "open", date d'aujourd'hui
@@ -209,7 +220,7 @@ export default function TradingPlatform() {
     };
     setDeals(ds => [...ds, newDeal]);
     setEditingDeal(newDeal);
-    setActiveTab('new-deal');
+    navigateTo('new-deal');
   };
 
   // Import JSON deals (merge, skip existing IDs)
@@ -224,6 +235,20 @@ export default function TradingPlatform() {
   // Restore deals (full replace — from MyProfile backup)
   const restoreDeals = (imported) => { setDeals(imported); };
 
+  const navigateTo = (tabId) => {
+    setActiveTab(tabId);
+    const section = TAB_SECTION_MAP[tabId];
+    if (section) setOpenSections(prev => new Set([...prev, section]));
+  };
+
+  const toggleSection = (key) => {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
   // Market prices (Fix 3)
   const setMarketPrice = (key, val) => setMarketPrices(prev => ({ ...prev, [key]: val }));
 
@@ -235,6 +260,20 @@ export default function TradingPlatform() {
   // Lots → enregistrer dans un deal
   const saveLots = (dealId, lots) => {
     setDeals(ds => ds.map(d => d.id === dealId ? { ...d, lots } : d));
+  };
+
+  // Risk Matrix → enregistrer dans un deal
+  const saveRiskMatrix = (dealId, riskData) => {
+    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, riskMatrix: riskData } : d));
+  };
+
+  // PnL → sync le fret modifié manuellement vers le deal
+  const savePnLFreight = (dealId, freightAmount) => {
+    setDeals(ds => ds.map(d =>
+      d.id === dealId
+        ? { ...d, freight: { ...(d.freight || {}), totalFreight: freightAmount } }
+        : d,
+    ));
   };
 
   // PricingValidation FX → enregistrer dans un deal
@@ -330,30 +369,49 @@ export default function TradingPlatform() {
             </div>
           </div>
 
-          <nav className="flex-1 py-3 overflow-y-auto">
+          <nav className="flex-1 py-2 overflow-y-auto">
             {Object.entries(sections).map(([sectionKey, section]) => {
-              const items = nav.filter(n => n.section === sectionKey);
+              const items    = nav.filter(n => n.section === sectionKey);
               if (items.length === 0) return null;
+              const isOpen   = openSections.has(sectionKey);
+              const hasActive = items.some(n => n.id === activeTab);
               return (
-                <div key={sectionKey} className="mb-2">
-                  <div className="px-5 py-1 text-xs uppercase text-slate-500 font-semibold">
-                    {section.label}
+                <div key={sectionKey} className="mb-1">
+                  {/* En-tête de section cliquable */}
+                  <button
+                    onClick={() => toggleSection(sectionKey)}
+                    className={`w-full flex items-center justify-between px-4 py-2 text-xs uppercase font-semibold transition
+                      ${hasActive
+                        ? 'text-amber-400 bg-slate-800/60'
+                        : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                      }`}>
+                    <span>{section.label}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-0' : '-rotate-90'}`} />
+                  </button>
+
+                  {/* Items déroulants */}
+                  <div style={{
+                    maxHeight: isOpen ? `${items.length * 44}px` : '0px',
+                    overflow: 'hidden',
+                    transition: 'max-height 0.22s ease',
+                  }}>
+                    {items.map(n => {
+                      const Icon   = n.icon;
+                      const active = activeTab === n.id;
+                      return (
+                        <button key={n.id}
+                          onClick={() => { if (n.id === 'new-deal') setEditingDeal(null); navigateTo(n.id); }}
+                          className={`w-full flex items-center gap-3 pl-6 pr-4 py-2 text-sm transition ${
+                            active
+                              ? 'bg-blue-700 text-white border-l-4 border-amber-400 pl-5'
+                              : 'text-slate-300 hover:bg-slate-800 border-l-4 border-transparent'
+                          }`}>
+                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          <span className="truncate">{n.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
-                  {items.map(n => {
-                    const Icon   = n.icon;
-                    const active = activeTab === n.id;
-                    return (
-                      <button key={n.id}
-                        onClick={() => { if (n.id === 'new-deal') setEditingDeal(null); setActiveTab(n.id); }}
-                        className={`w-full flex items-center gap-3 px-5 py-2 text-sm transition ${
-                          active
-                            ? 'bg-blue-700 text-white border-l-4 border-amber-400'
-                            : 'text-slate-300 hover:bg-slate-800'
-                        }`}>
-                        <Icon className="w-4 h-4" />{n.label}
-                      </button>
-                    );
-                  })}
                 </div>
               );
             })}
@@ -395,10 +453,10 @@ export default function TradingPlatform() {
               <Advisor currentUser={currentUser} marketPrices={marketPrices} />
             )}
             {activeTab === 'deal-manager-agent' && (
-              <DealManagerAgent deals={deals} marketPrices={marketPrices} plattsDataset={plattsDataset} />
+              <DealManagerLocal deals={deals} marketPrices={marketPrices} plattsDataset={plattsDataset} />
             )}
             {activeTab === 'dashboard' && (
-              <Dashboard deals={deals} goTo={setActiveTab}
+              <Dashboard deals={deals} goTo={navigateTo}
                 marketPrices={marketPrices} setMarketPrice={setMarketPrice} />
             )}
             {activeTab === 'market'    && <Market />}
@@ -427,9 +485,9 @@ export default function TradingPlatform() {
             {activeTab === 'lots'      && (
               <Lots deals={deals} onLotsUpdated={saveLots} />
             )}
-            {activeTab === 'pnl'       && <PnL       deals={deals} marketPrices={marketPrices} />}
+            {activeTab === 'pnl'       && <PnL deals={deals} marketPrices={marketPrices} onFreightSaved={savePnLFreight} />}
             {activeTab === 'lc'        && <LCChecker />}
-            {activeTab === 'risk'      && <RiskMatrix deals={deals} />}
+            {activeTab === 'risk'      && <RiskMatrix deals={deals} onRiskSaved={saveRiskMatrix} />}
             {activeTab === 'fx-pricing' && (
               <FxPricingValidator
                 deals={deals}

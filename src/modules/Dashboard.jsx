@@ -40,15 +40,17 @@ export default function Dashboard({ deals, goTo, marketPrices, setMarketPrice })
         <CardHeader icon={DollarSign} title="Prix de référence actuels"
           subtitle="Pré-remplissent les calculateurs Pricing et P&L — lisez sur les mini-charts puis saisissez ici" />
         <CardBody>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {[
               { key: 'brent',  label: 'Brent Dated ($/bbl)' },
               { key: 'wti',    label: 'WTI ($/bbl)' },
-              { key: 'gasoil', label: 'ICE Gasoil ($/MT)' },
+              { key: 'gasoil', label: 'Gasoil ($/MT)' },
+              { key: 'dubai',  label: 'Dubai ($/bbl)' },
+              { key: 'jet',    label: 'Jet/Kero ($/MT)' },
             ].map(({ key, label }) => (
               <Field key={key} label={label}>
                 <Input type="number" step="0.01"
-                  value={marketPrices[key]}
+                  value={marketPrices[key] ?? ''}
                   onChange={e => setMarketPrice(key, e.target.value)}
                   placeholder="0.00" />
               </Field>

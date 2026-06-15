@@ -1,12 +1,54 @@
-import React, { useState } from 'react';
-import { ShieldAlert } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ShieldAlert, Save } from 'lucide-react';
 import { PRODUCTS, RISK_TYPES } from '../constants.js';
 import { Card, CardHeader, CardBody, Select, Input } from '../components/UI.jsx';
 
-export default function RiskMatrix({ deals }) {
+const FREE_KEY = 'amko_risk_free';
+
+export default function RiskMatrix({ deals, onRiskSaved }) {
   const [selectedDealId, setSelectedDealId] = useState('');
   const [risks,       setRisks]       = useState({});
   const [mitigations, setMitigations] = useState({});
+  const isInitialLoad = useRef(true);
+
+  // Charger les données quand le deal change
+  useEffect(() => {
+    isInitialLoad.current = true;
+    if (!selectedDealId) {
+      try {
+        const saved = localStorage.getItem(FREE_KEY);
+        if (saved) {
+          const { risks: r, mitigations: m } = JSON.parse(saved);
+          setRisks(r || {});
+          setMitigations(m || {});
+        } else {
+          setRisks({});
+          setMitigations({});
+        }
+      } catch { setRisks({}); setMitigations({}); }
+    } else {
+      const deal = deals.find(d => d.id === selectedDealId);
+      if (deal?.riskMatrix) {
+        setRisks(deal.riskMatrix.risks || {});
+        setMitigations(deal.riskMatrix.mitigations || {});
+      } else {
+        setRisks({});
+        setMitigations({});
+      }
+    }
+    // Laisser un tick avant d'activer la sauvegarde auto
+    setTimeout(() => { isInitialLoad.current = false; }, 0);
+  }, [selectedDealId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sauvegarder automatiquement quand les données changent
+  useEffect(() => {
+    if (isInitialLoad.current) return;
+    if (!selectedDealId) {
+      try { localStorage.setItem(FREE_KEY, JSON.stringify({ risks, mitigations })); } catch {}
+    } else if (onRiskSaved) {
+      onRiskSaved(selectedDealId, { risks, mitigations });
+    }
+  }, [risks, mitigations]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setRisk = (type, val) => setRisks(r => ({ ...r, [type]: val }));
   const setMit  = (type, val) => setMitigations(m => ({ ...m, [type]: val }));
@@ -21,9 +63,15 @@ export default function RiskMatrix({ deals }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Matrice des risques</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Identifier, coter et mitiger les risques</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Matrice des risques</h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Identifier, coter et mitiger les risques</p>
+        </div>
+        <div className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+          <Save className="w-3.5 h-3.5" />
+          {selectedDealId ? 'Sauvegardé dans le deal' : 'Sauvegardé localement'}
+        </div>
       </div>
 
       <Card>

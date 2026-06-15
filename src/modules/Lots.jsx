@@ -69,6 +69,10 @@ export default function Lots({ deals, onLotsUpdated }) {
       const patch = { ...l, [key]: value };
       // Recalcul du prix final
       patch.finalPrice = (Number(patch.plattsPrice) || 0) + (Number(patch.differential) || 0);
+      // Auto-transition : pending → priced dès que le Platts est saisi
+      if (key === 'plattsPrice' && Number(value) > 0 && patch.status === 'pending') {
+        patch.status = 'priced';
+      }
       return patch;
     });
     save(updated);
