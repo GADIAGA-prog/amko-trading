@@ -13,8 +13,24 @@
 // Fallback : si un taux forward est 0 ou absent, on utilise le spot.
 // ─────────────────────────────────────────────────────────────────────────────
 
+export const EUR_XOF_FIXED = 655.957;
+
 function safeRate(fwd, spot) {
   return Number(fwd) > 0 ? Number(fwd) : Number(spot) || 1;
+}
+
+export function normalizeFxRates(raw = {}) {
+  const spotEURUSD    = Number(raw.spotEURUSD)    || 1.08;
+  const spotUSDXOF    = Number(raw.spotUSDXOF)    || Math.round(EUR_XOF_FIXED / spotEURUSD * 100) / 100;
+  const spotEURXOF    = Number(raw.spotEURXOF)    || EUR_XOF_FIXED;
+  return {
+    spotEURUSD,
+    spotUSDXOF,
+    spotEURXOF,
+    forwardEURUSD: Number(raw.forwardEURUSD) || spotEURUSD,
+    forwardUSDXOF: Number(raw.forwardUSDXOF) || spotUSDXOF,
+    forwardEURXOF: Number(raw.forwardEURXOF) || spotEURXOF,
+  };
 }
 
 /**

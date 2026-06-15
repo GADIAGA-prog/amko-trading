@@ -1,851 +1,331 @@
-import React, { useState, useMemo } from 'react';
-import {
-  TrendingUp, TrendingDown, Zap, AlertTriangle, CheckCircle2,
-  BarChart3, Activity, Globe, ArrowUpDown, Layers, Calculator,
-} from 'lucide-react';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, ReferenceLine,
-} from 'recharts';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Activity, BarChart3, Calculator, CalendarDays, Database, Download, RefreshCw, TrendingUp, Zap } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Card, CardHeader, CardBody, Select, Button, Field, Input } from '../components/UI.jsx';
 import { fmt } from '../utils.js';
-import { PRODUCTS } from '../constants.js';
+import { buildDatasetFromStore } from '../utils/plattsStore.js';
 
-// ─────────────────────────────────────────────────────────────────
-// MÉTADONNÉES DES 16 ASSESSMENTS PLATTS DU FICHIER AMKO
-// ─────────────────────────────────────────────────────────────────
 export const PLATTS_COLS = [
-  { code: 'PCAAS00', name: 'Dated Brent',               abbr: 'Brent',            unit: 'bbl', bblMT: 7.45, type: 'crude',   region: 'Global',      color: '#1d4ed8', chartColor: '#3b82f6' },
-  { code: 'AAWZB00', name: 'Gasoline CIF Med 10ppm',    abbr: 'Gasoline CIF Med', unit: 'MT',  bblMT: 8.50, type: 'product', region: 'Europe Med',  color: '#7c3aed', chartColor: '#a855f7' },
-  { code: 'GAS1',    name: 'ICE Gasoil Futures',         abbr: 'Gasoil Fut ICE',   unit: 'MT',  bblMT: 7.50, type: 'futures', region: 'ICE',         color: '#0891b2', chartColor: '#06b6d4' },
-  { code: 'AAVJI00', name: 'Gasoil 0.1%S FOB Med',      abbr: 'Gasoil FOB Med',   unit: 'MT',  bblMT: 7.50, type: 'product', region: 'Europe Med',  color: '#0284c7', chartColor: '#0ea5e9' },
-  { code: 'PJAAU00', name: 'Jet A1 CIF NWE',             abbr: 'Jet CIF NWE',      unit: 'MT',  bblMT: 7.90, type: 'product', region: 'NW Europe',   color: '#dc2626', chartColor: '#ef4444' },
-  { code: 'AAIDL00', name: 'Jet A1 FOB Med',             abbr: 'Jet FOB Med',      unit: 'MT',  bblMT: 7.90, type: 'product', region: 'Europe Med',  color: '#ea580c', chartColor: '#f97316' },
-  { code: 'PUAAK00', name: 'FO 1%S FOB Med',             abbr: 'FO 1% FOB Med',    unit: 'MT',  bblMT: 6.70, type: 'product', region: 'Europe Med',  color: '#78716c', chartColor: '#a8a29e' },
-  { code: 'PUAAL00', name: 'FO 1%S CIF NWE',             abbr: 'FO 1% CIF NWE',    unit: 'MT',  bblMT: 6.70, type: 'product', region: 'NW Europe',   color: '#57534e', chartColor: '#78716c' },
-  { code: 'PUABA00', name: 'FO 3.5%S CIF NWE (HSFO)',    abbr: 'HSFO CIF NWE',     unit: 'MT',  bblMT: 6.70, type: 'product', region: 'NW Europe',   color: '#44403c', chartColor: '#57534e' },
-  { code: 'PMAAL00', name: 'Butane FOB NWE Seagoing',    abbr: 'Butane NWE',       unit: 'MT',  bblMT: 11.00,type: 'gpl',     region: 'NW Europe',   color: '#16a34a', chartColor: '#22c55e' },
-  { code: 'PMAAM00', name: 'Butane FOB West Med Coaster',abbr: 'Butane W.Med',     unit: 'MT',  bblMT: 11.00,type: 'gpl',     region: 'W. Med',      color: '#15803d', chartColor: '#4ade80' },
-  { code: 'AAIDT00', name: 'Gasoil 10ppm FOB Arab Gulf', abbr: 'Gasoil FOB AG',    unit: 'bbl', bblMT: 7.50, type: 'product', region: 'Arab Gulf',   color: '#b45309', chartColor: '#f59e0b' },
-  { code: 'AFUJK00', name: 'Gasoil FOB Fujairah',        abbr: 'Gasoil Fujairah',  unit: 'bbl', bblMT: 7.50, type: 'product', region: 'Fujairah',   color: '#a16207', chartColor: '#fbbf24' },
-  { code: 'AAICY00', name: 'Gasoline 95 RON FOB AG',     abbr: 'Gas 95R AG',       unit: 'bbl', bblMT: 8.50, type: 'product', region: 'Arab Gulf',   color: '#9333ea', chartColor: '#c084fc' },
-  { code: 'PGAEY00', name: 'Gasoline 92 RON FOB Spore',  abbr: 'Gas 92R Spore',    unit: 'bbl', bblMT: 8.50, type: 'product', region: 'Singapore',  color: '#7e22ce', chartColor: '#a855f7' },
-  { code: 'AAWZA00', name: 'Gasoline 10ppm FOB Med',     abbr: 'Gas FOB Med',      unit: 'MT',  bblMT: 8.50, type: 'product', region: 'Europe Med',  color: '#6d28d9', chartColor: '#8b5cf6' },
+  { code: 'PCAAS00', name: 'Dated Brent', abbr: 'Brent', unit: 'bbl', bblMT: 7.45, type: 'crude' },
+  { code: 'AAWZB00', name: 'Gasoline CIF Med 10ppm', abbr: 'Gasoline CIF Med', unit: 'MT', bblMT: 8.50, type: 'product' },
+  { code: 'GAS1', name: 'ICE Gasoil Futures', abbr: 'Gasoil Fut ICE', unit: 'MT', bblMT: 7.50, type: 'futures' },
+  { code: 'AAVJI00', name: 'Gasoil 0.1%S FOB Med', abbr: 'Gasoil FOB Med', unit: 'MT', bblMT: 7.50, type: 'product' },
+  { code: 'PJAAU00', name: 'Jet A1 CIF NWE', abbr: 'Jet CIF NWE', unit: 'MT', bblMT: 7.90, type: 'product' },
+  { code: 'AAIDL00', name: 'Jet A1 FOB Med', abbr: 'Jet FOB Med', unit: 'MT', bblMT: 7.90, type: 'product' },
+  { code: 'PUAAK00', name: 'FO 1%S FOB Med', abbr: 'FO 1% FOB Med', unit: 'MT', bblMT: 6.70, type: 'product' },
+  { code: 'PUAAL00', name: 'FO 1%S CIF NWE', abbr: 'FO 1% CIF NWE', unit: 'MT', bblMT: 6.70, type: 'product' },
+  { code: 'PUABA00', name: 'FO 3.5%S CIF NWE', abbr: 'HSFO CIF NWE', unit: 'MT', bblMT: 6.70, type: 'product' },
+  { code: 'PMAAL00', name: 'Butane FOB NWE', abbr: 'Butane NWE', unit: 'MT', bblMT: 11.00, type: 'gpl' },
+  { code: 'PMAAM00', name: 'Butane FOB West Med', abbr: 'Butane W.Med', unit: 'MT', bblMT: 11.00, type: 'gpl' },
+  { code: 'AAIDT00', name: 'Gasoil 10ppm FOB Arab Gulf', abbr: 'Gasoil FOB AG', unit: 'bbl', bblMT: 7.50, type: 'product' },
+  { code: 'AFUJK00', name: 'Gasoil FOB Fujairah', abbr: 'Gasoil Fujairah', unit: 'bbl', bblMT: 7.50, type: 'product' },
+  { code: 'AAICY00', name: 'Gasoline 95 RON FOB AG', abbr: 'Gas 95R AG', unit: 'bbl', bblMT: 8.50, type: 'product' },
+  { code: 'PGAEY00', name: 'Gasoline 92 RON FOB Spore', abbr: 'Gas 92R Spore', unit: 'bbl', bblMT: 8.50, type: 'product' },
+  { code: 'AAWZA00', name: 'Gasoline 10ppm FOB Med', abbr: 'Gas FOB Med', unit: 'MT', bblMT: 8.50, type: 'product' },
 ];
 
-// Données Platts pré-chargées depuis le fichier du 01/06/2026
-// Toutes les valeurs en $/MT (les valeurs $/bbl ont été converties × bblMT)
-const PRELOADED = {
-  source: 'F New Platts - 01.06.26.xlsx',
-  importedAt: '2026-06-01',
-  dates: [
-    '2026-06-01','2026-05-29','2026-05-28','2026-05-27','2026-05-26',
-    '2026-05-22','2026-05-21','2026-05-20','2026-05-19','2026-05-18',
-    '2026-05-15','2026-05-14','2026-05-13','2026-05-12','2026-05-11',
-    '2026-05-08','2026-05-07','2026-05-06','2026-05-05','2026-05-01',
-  ],
-  prices: {
-    '2026-06-01': { PCAAS00:100.30, AAWZB00:1053.00, GAS1:1095.25, AAVJI00:1079.75, PJAAU00:1179.50, AAIDL00:1142.75, PUAAK00:585.75, PUAAL00:599.50, PUABA00:580.00, PMAAL00:589.00, PMAAM00:753.00, AAIDT00:1034.25 },
-    '2026-05-29': { PCAAS00:93.56,  AAWZB00:1014.00, GAS1:1009.50, AAVJI00:1000.00, PJAAU00:1096.25, AAIDL00:1055.00, PUAAK00:553.00, PUAAL00:565.25, PUABA00:551.00, PMAAL00:546.00, PMAAM00:703.00, AAIDT00:991.0,  AFUJK00:998.8,  AAICY00:921.1, PGAEY00:967.1, AAWZA00:992.75 },
-    '2026-05-28': { PCAAS00:96.80,  AAWZB00:1034.25, GAS1:1032.00, AAVJI00:1024.50, PJAAU00:1124.00, AAIDL00:1081.00, PUAAK00:572.50, PUAAL00:587.25, PUABA00:572.25, PMAAL00:566.00, PMAAM00:721.00, AAIDT00:1013.9, AFUJK00:1023.5, AAICY00:953.3, PGAEY00:999.3, AAWZA00:1011.75 },
-    '2026-05-27': { PCAAS00:99.59,  AAWZB00:1035.00, GAS1:1047.00, AAVJI00:1035.75, PJAAU00:1135.00, AAIDL00:1092.00, PUAAK00:565.75, PUAAL00:580.75, PUABA00:568.50, PMAAL00:575.00, PMAAM00:733.00, AAWZA00:1012.50 },
-    '2026-05-26': { PCAAS00:103.78, AAWZB00:1099.50, GAS1:1083.50, AAVJI00:1074.25, PJAAU00:1183.50, AAIDL00:1136.00, PUAAK00:589.00, PUAAL00:606.25, PUABA00:588.00, PMAAL00:614.00, PMAAM00:777.00, AAIDT00:1039.5, AFUJK00:1066.1, AAICY00:1006.2, PGAEY00:1052.6, AAWZA00:1074.50 },
-    '2026-05-22': { PCAAS00:107.23, AAWZB00:1140.50, GAS1:1135.25, AAVJI00:1114.00, PJAAU00:1253.00, AAIDL00:1200.25, PUAAK00:610.25, PUAAL00:627.75, PUABA00:611.00, PMAAL00:644.00, PMAAM00:814.00, AAIDT00:1108.2, AAWZA00:1112.75 },
-    '2026-05-21': { PCAAS00:111.71, AAWZB00:1177.50, GAS1:1172.50, AAVJI00:1153.00, PJAAU00:1304.75, AAIDL00:1249.75, PUAAK00:627.00, PUAAL00:645.25, PUABA00:628.00, PMAAL00:667.00, PMAAM00:843.00, AAWZA00:1148.50 },
-    '2026-05-20': { PCAAS00:109.83, AAWZB00:1192.00, GAS1:1171.00, AAVJI00:1152.75, PJAAU00:1302.75, AAIDL00:1247.75, PUAAK00:615.50, PUAAL00:634.00, PUABA00:628.75, PMAAL00:674.00, PMAAM00:861.00, AAWZA00:1163.00 },
-    '2026-05-19': { PCAAS00:114.68, AAWZB00:1227.00, GAS1:1210.00, AAVJI00:1198.50, PJAAU00:1358.50, AAIDL00:1304.25, PUAAK00:645.75, PUAAL00:666.00, PUABA00:666.75, PMAAL00:708.00, PMAAM00:915.00, AAWZA00:1198.50 },
-    '2026-05-18': { PCAAS00:114.90, AAWZB00:1243.25, GAS1:1233.50, AAVJI00:1222.25, PJAAU00:1376.25, AAIDL00:1324.25, PUAAK00:651.50, PUAAL00:672.00, PUABA00:679.00, PMAAL00:673.00, PMAAM00:922.00, AAWZA00:1216.00 },
-    '2026-05-15': { PCAAS00:112.20, AAWZB00:1219.25, GAS1:1204.25, AAVJI00:1193.50, PJAAU00:1341.00, AAIDL00:1288.25, PUAAK00:639.00, PUAAL00:659.25, PUABA00:663.00, PMAAL00:663.00, PMAAM00:927.00, AAWZA00:1191.50 },
-    '2026-05-14': { PCAAS00:109.59, AAWZB00:1186.50, GAS1:1146.25, AAVJI00:1141.75, PJAAU00:1284.25, AAIDL00:1231.50, PUAAK00:620.50, PUAAL00:635.25, PUABA00:640.25, PMAAL00:657.25, PMAAM00:919.00, AAWZA00:1158.75 },
-    '2026-05-13': { PCAAS00:111.20, AAWZB00:1217.00, GAS1:1191.50, AAVJI00:1181.50, PJAAU00:1325.00, AAIDL00:1267.00, PUAAK00:632.25, PUAAL00:648.00, PUABA00:649.25, PMAAL00:744.00, PMAAM00:949.00, AAWZA00:1186.25 },
-    '2026-05-12': { PCAAS00:110.83, AAWZB00:1224.25, GAS1:1207.25, AAVJI00:1199.50, PJAAU00:1343.50, AAIDL00:1284.00, PUAAK00:645.75, PUAAL00:657.25, PUABA00:646.50, PMAAL00:760.00, PMAAM00:968.00, AAWZA00:1192.75 },
-    '2026-05-11': { PCAAS00:105.24, AAWZB00:1184.25, GAS1:1178.50, AAVJI00:1156.25, PJAAU00:1302.50, AAIDL00:1241.50, PUAAK00:623.50, PUAAL00:633.25, PUABA00:637.25, PMAAL00:745.00, PMAAM00:950.00, AAWZA00:1152.00 },
-    '2026-05-08': { PCAAS00:104.72, AAWZB00:1158.00, GAS1:1192.00, AAVJI00:1154.25, PJAAU00:1269.00, AAIDL00:1207.50, PUAAK00:616.75, PUAAL00:624.75, PUABA00:635.25, PMAAL00:715.00, PMAAM00:912.00, AAWZA00:1125.50 },
-    '2026-05-07': { PCAAS00:100.59, AAWZB00:1120.75, GAS1:1141.25, AAVJI00:1105.00, PJAAU00:1218.25, AAIDL00:1155.75, PUAAK00:596.50, PUAAL00:603.25, PUABA00:622.00, PMAAL00:677.00, PMAAM00:863.00, AAWZA00:1087.50 },
-    '2026-05-06': { PCAAS00:104.19, AAWZB00:1129.25, GAS1:1188.00, AAVJI00:1148.25, PJAAU00:1286.00, AAIDL00:1222.00, PUAAK00:609.00, PUAAL00:607.75, PUABA00:644.50, PMAAL00:708.00, PMAAM00:903.00, AAWZA00:1095.25 },
-    '2026-05-05': { PCAAS00:114.99, AAWZB00:1194.00, GAS1:1294.75, AAVJI00:1242.50, PJAAU00:1427.00, AAIDL00:1357.00, PUAAK00:652.50, PUAAL00:647.25, PUABA00:661.25, PMAAL00:777.00, PMAAM00:991.00, AAWZA00:1156.75 },
-    '2026-05-01': { PCAAS00:117.95, AAWZB00:1175.50, GAS1:1298.50, AAVJI00:1253.00, PJAAU00:1449.25, AAIDL00:1379.25, PUAAK00:614.00, PUAAL00:612.25, PUABA00:613.50, PMAAL00:778.00, PMAAM00:992.00, AAWZA00:1138.25 },
-  },
-};
+const COLOR_POOL = ['#2563eb', '#0891b2', '#16a34a', '#dc2626', '#9333ea', '#ea580c', '#64748b', '#0f766e'];
 
-// ─────────────────────────────────────────────────────────────────
-// UTILITAIRES
-// ─────────────────────────────────────────────────────────────────
-
-/** Récupère le prix d'un code sur une date donnée (cherche dans dataset puis PRELOADED) */
-function getPrice(dataset, code, date) {
-  const d = dataset ?? PRELOADED;
-  return d.prices[date]?.[code] ?? null;
+function ddmmyyyy(date) {
+  if (!date) return '';
+  const [y, m, d] = String(date).slice(0, 10).split('-');
+  return y && m && d ? `${d}${m}${y}` : String(date);
 }
 
-/** Toutes les dates triées desc */
+function getCodeMeta(code, descriptions = {}) {
+  return PLATTS_COLS.find(c => c.code === code) || { code, name: descriptions?.[code] || code, abbr: code, unit: 'MT', bblMT: 1, type: 'imported' };
+}
+
 function getDates(dataset) {
-  const d = dataset ?? PRELOADED;
-  return [...d.dates].sort().reverse();
+  return Array.isArray(dataset?.dates) ? dataset.dates : Object.keys(dataset?.prices || {}).sort().reverse();
 }
 
-/** D-1 calendaire = date précédente disponible */
+function chooseAvailableDate(inputDate, dates) {
+  if (!inputDate || !dates.length) return '';
+  if (dates.includes(inputDate)) return inputDate;
+  const asc = [...dates].sort();
+  const previousOrSame = asc.filter(d => d <= inputDate).pop();
+  return previousOrSame || asc[0] || dates[0];
+}
+
+function getPrice(dataset, code, date) {
+  const value = dataset?.prices?.[date]?.[code];
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function toMT(price, meta) {
+  if (price == null) return null;
+  return meta.unit === 'bbl' ? price * (meta.bblMT || 1) : price;
+}
+
 function prevDate(dates, date) {
   const idx = dates.indexOf(date);
-  return idx >= 0 && idx < dates.length - 1 ? dates[idx + 1] : null;
+  return idx >= 0 ? dates[idx + 1] : null;
 }
 
-/** Date N semaines avant */
-function dateNWeeksAgo(dates, date, n) {
-  const target = new Date(date);
-  target.setDate(target.getDate() - n * 7);
-  const iso = target.toISOString().slice(0, 10);
-  return dates.find(d => d <= iso) ?? null;
+function computeVariation(dataset, code, date, dates) {
+  const current = getPrice(dataset, code, date);
+  const previousDate = prevDate(dates, date);
+  const previous = previousDate ? getPrice(dataset, code, previousDate) : null;
+  if (current == null || previous == null || previous === 0) return null;
+  return { abs: current - previous, pct: ((current - previous) / previous) * 100, previousDate };
 }
 
-/** Convertit un prix en $/MT si la colonne est en $/bbl */
-function toMT(price, col) {
-  if (!price) return null;
-  return col.unit === 'bbl' ? price * col.bblMT : price;
-}
-
-/** Crack spread $/MT et $/bbl */
 function crackSpread(productMT, brentBbl, bblMT) {
-  if (!productMT || !brentBbl) return null;
+  if (productMT == null || brentBbl == null) return null;
   const brentMT = brentBbl * bblMT;
-  return {
-    mt: productMT - brentMT,
-    bbl: productMT / bblMT - brentBbl,
-  };
+  return { mt: productMT - brentMT, bbl: productMT / bblMT - brentBbl };
 }
 
-/** Couleur de variation */
-function varColor(v, invert = false) {
-  if (v === null || v === undefined) return 'text-slate-500 dark:text-slate-400';
-  const pos = invert ? v < 0 : v > 0;
-  if (pos) return 'text-emerald-600 dark:text-emerald-400';
-  if (v < 0 && !invert) return 'text-red-600 dark:text-red-400';
-  if (v > 0 && invert) return 'text-red-600 dark:text-red-400';
-  return 'text-slate-500 dark:text-slate-400';
-}
-
-function fmtVar(v, dec = 2) {
-  if (v === null || v === undefined) return '—';
-  return (v > 0 ? '+' : '') + fmt(v, dec);
-}
-
-// ─────────────────────────────────────────────────────────────────
-// SOUS-COMPOSANTS
-// ─────────────────────────────────────────────────────────────────
-
-function PriceCard({ col, price, d1, d1pct }) {
-  const isUp = d1 > 0;
-  return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-3">
-      <div className="flex items-start justify-between gap-1">
-        <div className="min-w-0">
-          <div className="text-xs font-mono text-slate-500 dark:text-slate-400">{col.code}</div>
-          <div className="text-xs text-slate-600 dark:text-slate-400 truncate">{col.abbr}</div>
-        </div>
-        <span className="text-xs px-1.5 py-0.5 rounded text-white flex-shrink-0"
-          style={{ backgroundColor: col.color }}>
-          {col.region}
-        </span>
-      </div>
-      <div className="mt-2">
-        <div className="text-xl font-bold text-slate-900 dark:text-slate-100">
-          {price ? fmt(price, 2) : '—'}
-          <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">$/{col.unit}</span>
-        </div>
-        {d1 !== null && (
-          <div className={`text-xs mt-0.5 font-medium ${varColor(d1)}`}>
-            {isUp ? '▲' : '▼'} {fmtVar(d1)} ({fmtVar(d1pct, 1)}%)
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function CrackCard({ label, spreadMT, spreadBbl, d1MT, accent = 'blue' }) {
-  const colors = {
-    blue: { bg: 'bg-blue-50 dark:bg-blue-900/20', bd: 'border-blue-300 dark:border-blue-700', txt: 'text-blue-900 dark:text-blue-200', sub: 'text-blue-700 dark:text-blue-400' },
-    red:  { bg: 'bg-red-50 dark:bg-red-900/20',   bd: 'border-red-300 dark:border-red-700',   txt: 'text-red-900 dark:text-red-200',   sub: 'text-red-700 dark:text-red-400' },
-    green:{ bg: 'bg-emerald-50 dark:bg-emerald-900/20', bd: 'border-emerald-300 dark:border-emerald-700', txt: 'text-emerald-900 dark:text-emerald-200', sub: 'text-emerald-700 dark:text-emerald-400' },
-    slate:{ bg: 'bg-slate-50 dark:bg-slate-800', bd: 'border-slate-300 dark:border-slate-600', txt: 'text-slate-900 dark:text-slate-100', sub: 'text-slate-600 dark:text-slate-400' },
-  }[accent] ?? colors.blue;
-
-  return (
-    <div className={`rounded-md border p-3 ${colors.bg} ${colors.bd}`}>
-      <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase mb-1">{label}</div>
-      <div className={`text-xl font-bold ${colors.txt}`}>
-        {spreadMT !== null ? `${fmtVar(spreadMT)} $/MT` : '—'}
-      </div>
-      <div className={`text-xs ${colors.sub} mt-0.5`}>
-        {spreadBbl !== null ? `${fmtVar(spreadBbl, 2)} $/bbl` : ''}
-        {d1MT !== null && <span className={`ml-2 ${varColor(d1MT)}`}>(D-1: {fmtVar(d1MT)})</span>}
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────
-// COMPOSANT PRINCIPAL
-// ─────────────────────────────────────────────────────────────────
-export default function PlattsBoard({ plattsDataset, setMarketPrice, deals = [], onPushToDeal }) {
-  const dataset = plattsDataset ?? PRELOADED;
+function exportCsv(dataset) {
   const dates = getDates(dataset);
-  const latestDate = dates[0] ?? '';
+  const cols = dataset.columns || [];
+  const header = ['Date', ...cols].join(';');
+  const lines = dates.map(date => [ddmmyyyy(date), ...cols.map(c => dataset.prices?.[date]?.[c] ?? '')].join(';'));
+  const blob = new Blob([[header, ...lines].join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `AMKO_Platts_Board_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
-  const [selectedDate, setSelectedDate]   = useState(latestDate);
-  const [chartSeries,  setChartSeries]    = useState(['PCAAS00', 'AAVJI00', 'PJAAU00']);
+function SnapshotCard({ row }) {
+  const { code, meta, price, variation } = row;
+  return (
+    <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4">
+      <div className="text-xs uppercase text-slate-500 dark:text-slate-400 font-semibold">{code}</div>
+      <div className="text-sm text-slate-700 dark:text-slate-300 truncate" title={meta.name}>{meta.abbr || meta.name}</div>
+      <div className="text-2xl font-bold text-slate-900 dark:text-slate-100 mt-2">{fmt(price, 2)} <span className="text-xs font-normal text-slate-500">$/{meta.unit}</span></div>
+      {variation && (
+        <div className={`text-xs mt-1 ${variation.abs >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+          {variation.abs >= 0 ? '▲' : '▼'} {fmt(variation.abs, 2)} ({fmt(variation.pct, 2)}%) vs {ddmmyyyy(variation.previousDate)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function PlattsBoard({ plattsDataset, setMarketPrice, deals = [], onPushToDeal }) {
+  const [localDataset, setLocalDataset] = useState(() => {
+    const ds = buildDatasetFromStore();
+    return ds.dates?.length ? ds : null;
+  });
   const [activeSection, setActiveSection] = useState('snapshot');
+  const [selectedDate, setSelectedDate] = useState('');
+  const [chartCodes, setChartCodes] = useState([]);
+  const [mopCode, setMopCode] = useState('AAVJI00');
+  const [mopDays, setMopDays] = useState('5');
+  const [mopDiff, setMopDiff] = useState('0');
+  const [mopDealId, setMopDealId] = useState('');
 
-  const prevD  = prevDate(dates, selectedDate);
-  const prevW  = dateNWeeksAgo(dates, selectedDate, 1);
-  const prevM  = dateNWeeksAgo(dates, selectedDate, 4);
-
-  // ── Données de la date sélectionnée ──────────────────────────
-  const colByCode = Object.fromEntries(PLATTS_COLS.map(c => [c.code, c]));
-
-  const getP = (code) => getPrice(dataset, code, selectedDate);
-  const brent = getP('PCAAS00');
-
-  // Calcul de tous les prix en $/MT
-  const toMTp = (code) => {
-    const p = getP(code);
-    const col = colByCode[code];
-    return col && p ? toMT(p, col) : null;
-  };
-
-  // ── Crack spreads ─────────────────────────────────────────────
-  const cracks = useMemo(() => {
-    if (!brent) return {};
-    const calc = (code) => {
-      const col = colByCode[code];
-      if (!col) return null;
-      const pMT = toMTp(code);
-      if (!pMT) return null;
-      const cs = crackSpread(pMT, brent, col.bblMT);
-      // D-1 crack
-      let d1 = null;
-      if (prevD) {
-        const bD1 = getPrice(dataset, 'PCAAS00', prevD);
-        const pD1 = getPrice(dataset, code, prevD);
-        const colD1 = colByCode[code];
-        const pMTD1 = colD1 && pD1 ? toMT(pD1, colD1) : null;
-        if (bD1 && pMTD1) {
-          const csD1 = crackSpread(pMTD1, bD1, col.bblMT);
-          d1 = cs.mt - csD1.mt;
-        }
-      }
-      return { ...cs, d1 };
+  useEffect(() => {
+    const refresh = () => {
+      const ds = buildDatasetFromStore();
+      setLocalDataset(ds.dates?.length ? ds : null);
     };
-    return {
-      gasoline: calc('AAWZB00'),
-      gasoil:   calc('AAVJI00'),
-      jet:      calc('PJAAU00'),
-      fo1:      calc('PUAAK00'),
-      fo35:     calc('PUABA00'),
-      butane:   calc('PMAAL00'),
-    };
-  }, [selectedDate, brent, dataset]);
+    window.addEventListener('amko:platts-updated', refresh);
+    refresh();
+    return () => window.removeEventListener('amko:platts-updated', refresh);
+  }, []);
 
-  // ── Spreads de localisation et qualité ───────────────────────
-  const spreads = useMemo(() => {
-    const jetNWE   = toMTp('PJAAU00');
-    const jetMed   = toMTp('AAIDL00');
-    const go0Med   = toMTp('AAVJI00');
-    const goFut    = toMTp('GAS1');
-    const fo1Med   = toMTp('PUAAK00');
-    const fo1NWE   = toMTp('PUAAL00');
-    const fo35NWE  = toMTp('PUABA00');
-    const butNWE   = toMTp('PMAAL00');
-    const butWMed  = toMTp('PMAAM00');
-    const gasNWE   = toMTp('AAWZB00');
-    const gasMed   = toMTp('AAWZA00');
-    const goAG     = toMTp('AAIDT00');
+  const dataset = plattsDataset?.dates?.length ? plattsDataset : localDataset;
+  const dates = useMemo(() => getDates(dataset), [dataset]);
+  const columns = useMemo(() => dataset?.columns?.length ? dataset.columns : Object.keys(dataset?.prices?.[dates[0]] || {}), [dataset, dates]);
+  const minDate = dates.length ? [...dates].sort()[0] : '';
+  const maxDate = dates.length ? [...dates].sort().slice(-1)[0] : '';
 
-    return [
-      { label: 'Jet CIF NWE vs FOB Med',       value: jetNWE && jetMed ? jetNWE - jetMed : null,        signal: 'NWE premium' },
-      { label: 'Gasoil FOB Med vs Futures ICE', value: go0Med && goFut ? go0Med - goFut : null,          signal: 'Physical vs paper' },
-      { label: 'Gasoil FOB Med vs FOB AG',      value: go0Med && goAG ? go0Med - goAG : null,            signal: 'Arbitrage Med↔AG' },
-      { label: 'FO 1%S CIF NWE vs FOB Med',     value: fo1NWE && fo1Med ? fo1NWE - fo1Med : null,        signal: 'NWE premium freight' },
-      { label: 'FO 1%S vs 3.5%S CIF NWE',      value: fo1NWE && fo35NWE ? fo1NWE - fo35NWE : null,      signal: 'Low-S premium IMO2020' },
-      { label: 'Butane FOB W.Med vs NWE',       value: butWMed && butNWE ? butWMed - butNWE : null,      signal: 'Arb W.Med → NWE?' },
-      { label: 'Gasoline CIF Med vs FOB Med',   value: gasNWE && gasMed ? gasNWE - gasMed : null,        signal: 'CIF premium (fret incl.)' },
-    ];
-  }, [selectedDate, dataset]);
+  useEffect(() => {
+    if (!selectedDate && dates.length) setSelectedDate(dates[0]);
+    if (selectedDate && dates.length && !dates.includes(selectedDate)) setSelectedDate(chooseAvailableDate(selectedDate, dates));
+  }, [dates, selectedDate]);
 
-  // ── Signaux de marché ─────────────────────────────────────────
-  const signals = useMemo(() => {
-    const sigs = [];
-    if (brent && prevD) {
-      const bD1 = getPrice(dataset, 'PCAAS00', prevD);
-      if (bD1) {
-        const pctChg = (brent - bD1) / bD1 * 100;
-        if (Math.abs(pctChg) > 3) sigs.push({ level: 'high', text: `Brent ${pctChg > 0 ? '↑' : '↓'} ${fmt(Math.abs(pctChg), 1)}% vs J-1 — mouvement exceptionnel sur le brut.` });
-      }
-    }
-    if (cracks.jet?.mt > 350) sigs.push({ level: 'bull', text: `Jet crack à ${fmt(cracks.jet.mt, 0)} $/MT — aviation exceptionnelle, privilégier les ventes de Jet.` });
-    else if (cracks.jet?.mt > 200) sigs.push({ level: 'info', text: `Jet crack solide (${fmt(cracks.jet?.mt ?? 0, 0)} $/MT).` });
-    if (cracks.gasoil?.mt > 300) sigs.push({ level: 'bull', text: `Gasoil crack à ${fmt(cracks.gasoil.mt, 0)} $/MT — marché distillat moyen très fort.` });
-    if (cracks.fo35?.mt < -100) sigs.push({ level: 'bear', text: `Fuel Oil HSFO crack négatif (${fmt(cracks.fo35?.mt ?? 0, 0)} $/MT) — éviter l'accumulation de FO 3.5%.` });
-    const butSpread = spreads.find(s => s.label.includes('Butane FOB W.Med'));
-    if (butSpread?.value > 100) sigs.push({ level: 'arb', text: `Spread Butane W.Med/NWE à +${fmt(butSpread.value, 0)} $/MT — arbitrage à étudier (NWE → W.Med).` });
-    const physFut = spreads.find(s => s.label.includes('Futures ICE'));
-    if (physFut?.value && Math.abs(physFut.value) > 20) sigs.push({ level: physFut.value < 0 ? 'info' : 'info', text: `Gasoil physique ${physFut.value < 0 ? 'décote' : 'prime'} de ${fmt(Math.abs(physFut.value), 1)} $/MT vs ICE Futures — ${physFut.value < 0 ? 'contango physique' : 'backwardation physique'}.` });
-    return sigs;
-  }, [cracks, spreads, brent, prevD, dataset]);
+  useEffect(() => {
+    if (!chartCodes.length && columns.length) setChartCodes(columns.slice(0, 3));
+    if (!columns.includes(mopCode) && columns.length) setMopCode(columns.includes('AAVJI00') ? 'AAVJI00' : columns[0]);
+  }, [columns, chartCodes.length, mopCode]);
 
-  // ── Données chart ─────────────────────────────────────────────
+  const rows = useMemo(() => {
+    if (!dataset || !selectedDate) return [];
+    return columns.map((code) => {
+      const meta = getCodeMeta(code, dataset.descriptions);
+      const price = getPrice(dataset, code, selectedDate);
+      const variation = computeVariation(dataset, code, selectedDate, dates);
+      return { code, meta, price, variation };
+    }).filter(r => r.price != null);
+  }, [dataset, selectedDate, columns, dates]);
+
   const chartData = useMemo(() => {
-    const cols = chartSeries.map(code => colByCode[code]).filter(Boolean);
-    return [...dates].reverse().map(date => {
-      const entry = { date };
-      cols.forEach(col => {
-        const p = getPrice(dataset, col.code, date);
-        entry[col.code] = p ? toMT(p, col) : null;
-      });
-      return entry;
+    if (!dataset) return [];
+    return [...dates].reverse().map((date) => {
+      const point = { date: ddmmyyyy(date) };
+      chartCodes.forEach((code) => { point[code] = getPrice(dataset, code, date); });
+      return point;
     });
-  }, [chartSeries, dates, dataset]);
+  }, [dataset, dates, chartCodes]);
 
-  // ── MOP Calculator — Moyenne de Période ──────────────────────
-  const [mopCode,    setMopCode]    = useState('PCAAS00');
-  const [mopDays,    setMopDays]    = useState('5');
-  const [mopDiff,    setMopDiff]    = useState('0');
-  const [mopDealId,  setMopDealId]  = useState('');
-  const [mopPushed,  setMopPushed]  = useState(false);
+  const spreads = useMemo(() => {
+    const brent = getPrice(dataset, 'PCAAS00', selectedDate);
+    const pMT = (code) => toMT(getPrice(dataset, code, selectedDate), getCodeMeta(code, dataset?.descriptions));
+    const spread = (label, a, b) => ({ label, value: a != null && b != null ? a - b : null });
+    const gasoil = pMT('AAVJI00');
+    const gasoilFut = pMT('GAS1');
+    const jetCif = pMT('PJAAU00');
+    const jetFob = pMT('AAIDL00');
+    const gasCif = pMT('AAWZB00');
+    const gasFob = pMT('AAWZA00');
+    const fo1 = pMT('PUAAK00');
+    const fo35 = pMT('PUABA00');
+    return {
+      cracks: [
+        { label: 'Crack Gasoil FOB Med vs Brent', value: gasoil != null && brent != null ? crackSpread(gasoil, brent, 7.5) : null },
+        { label: 'Crack Jet CIF NWE vs Brent', value: jetCif != null && brent != null ? crackSpread(jetCif, brent, 7.9) : null },
+        { label: 'Crack Gasoline FOB Med vs Brent', value: gasFob != null && brent != null ? crackSpread(gasFob, brent, 8.5) : null },
+      ],
+      diffs: [
+        spread('Gasoil FOB Med vs ICE Futures', gasoil, gasoilFut),
+        spread('Jet CIF NWE vs Jet FOB Med', jetCif, jetFob),
+        spread('Gasoline CIF Med vs FOB Med', gasCif, gasFob),
+        spread('FO 1%S FOB Med vs FO 3.5%S CIF NWE', fo1, fo35),
+      ],
+    };
+  }, [dataset, selectedDate]);
 
   const mopValues = useMemo(() => {
-    const n = parseInt(mopDays) || 0;
-    const col = colByCode[mopCode];
-    if (!col) return null;
-    const asc = Object.entries(dataset.prices || {})
-      .filter(([, p]) => p[mopCode] != null)
-      .sort(([a], [b]) => a < b ? -1 : 1)
-      .map(([d, p]) => ({ d, v: toMT(p[mopCode], col) }))
-      .filter(x => x.v != null);
-    const window = n > 0 ? asc.slice(-n) : asc;
+    if (!dataset || !mopCode) return null;
+    const meta = getCodeMeta(mopCode, dataset.descriptions);
+    const n = Math.max(1, Number(mopDays) || 1);
+    const asc = [...dates].reverse()
+      .map(date => ({ date, raw: getPrice(dataset, mopCode, date) }))
+      .filter(x => x.raw != null)
+      .map(x => ({ ...x, mt: toMT(x.raw, meta) }));
+    const window = asc.slice(-n);
     if (!window.length) return null;
-    const avg = window.reduce((s, x) => s + x.v, 0) / window.length;
-    const withDiff = avg + (Number(mopDiff) || 0);
-    // In $/bbl for pricing
-    const avgBbl = col.unit === 'MT' ? avg / col.bblMT : avg;
-    const withDiffBbl = col.unit === 'MT' ? withDiff / col.bblMT : withDiff;
-    return { avg, withDiff, avgBbl, withDiffBbl, n: window.length, min: Math.min(...window.map(x=>x.v)), max: Math.max(...window.map(x=>x.v)), col };
-  }, [mopCode, mopDays, dataset, colByCode]);
+    const avgMT = window.reduce((s, x) => s + x.mt, 0) / window.length;
+    const diff = Number(mopDiff) || 0;
+    const finalMT = avgMT + diff;
+    return { meta, window, avgMT, diff, finalMT, avgBbl: meta.unit === 'MT' ? avgMT / (meta.bblMT || 1) : avgMT };
+  }, [dataset, dates, mopCode, mopDays, mopDiff]);
 
-  const pushMopToDeal = () => {
-    if (!mopDealId || !mopValues || !onPushToDeal) return;
-    onPushToDeal(mopDealId, mopCode, mopValues.withDiffBbl);
-    setMopPushed(true);
-    setTimeout(() => setMopPushed(false), 3000);
+  const pushKeyPrices = () => {
+    if (!setMarketPrice || !dataset || !selectedDate) return;
+    const brent = getPrice(dataset, 'PCAAS00', selectedDate);
+    const gasoil = getPrice(dataset, 'AAVJI00', selectedDate) ?? getPrice(dataset, 'GAS1', selectedDate);
+    if (brent != null) setMarketPrice('brent', String(brent));
+    if (gasoil != null) setMarketPrice('gasoil', String(gasoil));
+    alert('Prix clés envoyés au Dashboard.');
   };
 
-  // ── Appliquer au Dashboard ─────────────────────────────────────
-  const applyToDashboard = () => {
-    if (brent && setMarketPrice) setMarketPrice('brent', String(brent));
-    const gasoil = getP('AAVJI00');
-    if (gasoil && setMarketPrice) setMarketPrice('gasoil', String(gasoil));
+  const pushMop = () => {
+    if (!onPushToDeal || !mopDealId || !mopValues) return;
+    onPushToDeal(mopDealId, mopCode, mopValues.finalMT);
+    alert('MOP envoyé vers le deal sélectionné.');
   };
 
-  const sections = [
-    { id: 'mop',          label: 'Calculateur MOP' },
-    { id: 'snapshot',     label: 'Snapshot' },
-    { id: 'cracks',       label: 'Crack Spreads' },
-    { id: 'differentials',label: 'Différentiels' },
-    { id: 'chart',        label: 'Graphique' },
-    { id: 'signals',      label: `Signaux (${signals.length})` },
-  ];
+  const handleCalendarDate = (value) => {
+    const chosen = chooseAvailableDate(value, dates);
+    setSelectedDate(chosen);
+  };
+
+  if (!dataset || !dates.length) {
+    return (
+      <div className="space-y-6">
+        <div><h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Platts Board</h1><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Aucune donnée Platts importée.</p></div>
+        <Card><CardHeader icon={Database} title="Aucune base Platts disponible" /><CardBody><p className="text-sm text-slate-600 dark:text-slate-300">Allez dans <b>Outils → Import Platts</b>, importez votre fichier Excel, puis revenez sur ce Board.</p></CardBody></Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
+    <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Platts Board</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Source : <b>{dataset.source ?? 'Import Platts'}</b> — {dates.length} jour(s) disponibles
-          </p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Source : {dataset.source || 'Platts importé'} — {dates.length} date(s), {columns.length} produit(s)</p>
         </div>
-        <div className="flex gap-2 items-center flex-wrap">
-          <Select value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-            className="!w-auto text-sm">
-            {dates.map(d => <option key={d} value={d}>{d}</option>)}
-          </Select>
-          <Button variant="primary" onClick={applyToDashboard} icon={Zap} size="sm">
-            Appliquer au Dashboard
-          </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" icon={RefreshCw} onClick={() => setLocalDataset(buildDatasetFromStore())}>Recharger</Button>
+          <Button variant="outline" icon={Download} onClick={() => exportCsv(dataset)}>Exporter CSV</Button>
+          <Button variant="primary" icon={TrendingUp} onClick={pushKeyPrices}>Envoyer prix Dashboard</Button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 flex-wrap border-b border-slate-200 dark:border-slate-700">
-        {sections.map(({ id, label }) => (
-          <button key={id} onClick={() => setActiveSection(id)}
-            className={`px-4 py-2 text-sm font-medium rounded-t-md border-b-2 transition ${
-              activeSection === id
-                ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-800'
-                : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-            }`}>
-            {label}
-          </button>
+      <div className="flex flex-wrap gap-2">
+        {[['snapshot', 'Snapshot'], ['mop', 'MOP Calculator'], ['spreads', 'Spreads & cracks'], ['chart', 'Graphique'], ['table', 'Table complète']].map(([id, label]) => (
+          <button key={id} onClick={() => setActiveSection(id)} className={`px-4 py-2 rounded-lg text-sm font-semibold ${activeSection === id ? 'bg-blue-700 text-white' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700'}`}>{label}</button>
         ))}
       </div>
 
-      {/* ── CALCULATEUR MOP ───────────────────────────────────── */}
-      {activeSection === 'mop' && (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader icon={Calculator} title="Calculateur MOP — Moyenne de Période"
-              subtitle="Calcule le Platts moyen sur N jours et pousse le prix vers un deal ou un lot" />
-            <CardBody>
-              <div className="grid md:grid-cols-4 gap-4">
-                <Field label="Assessment Platts">
-                  <Select value={mopCode} onChange={e => { setMopCode(e.target.value); setMopPushed(false); }}>
-                    {PLATTS_COLS.filter(c => (dataset.prices?.[dates[0]]?.[c.code]) != null || Object.values(dataset.prices||{}).some(p=>p[c.code]!=null)).map(c => (
-                      <option key={c.code} value={c.code}>{c.code} — {c.name}</option>
-                    ))}
-                  </Select>
-                </Field>
-                <Field label="Fenêtre (N derniers jours, 0 = tout)">
-                  <Input type="number" min="0" value={mopDays} onChange={e => setMopDays(e.target.value)} />
-                </Field>
-                <Field label="Différentiel ($/MT ou $/bbl)">
-                  <Input type="number" step="0.01" value={mopDiff} onChange={e => setMopDiff(e.target.value)} placeholder="0.00" />
-                </Field>
-                <Field label="Jours retenus">
-                  <div className="px-3 py-2 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-md text-sm font-semibold text-slate-800 dark:text-slate-200">
-                    {mopValues?.n ?? '—'} jours
-                  </div>
-                </Field>
-              </div>
+      <Card>
+        <CardHeader icon={CalendarDays} title="Sélection de la date Platts" subtitle="Choisissez la date dans le calendrier ou dans la liste des dates importées." />
+        <CardBody>
+          <div className="grid md:grid-cols-4 gap-4">
+            <Field label="Calendrier Platts">
+              <Input type="date" value={selectedDate} min={minDate} max={maxDate} onChange={e => handleCalendarDate(e.target.value)} />
+            </Field>
+            <Field label="Dates importées">
+              <Select value={selectedDate} onChange={e => setSelectedDate(e.target.value)}>{dates.map(d => <option key={d} value={d}>{ddmmyyyy(d)}</option>)}</Select>
+            </Field>
+            <Field label="Produit principal graphique">
+              <Select value={chartCodes[0] || ''} onChange={e => setChartCodes([e.target.value])}>{columns.map(code => <option key={code} value={code}>{getCodeMeta(code, dataset.descriptions).name} ({code})</option>)}</Select>
+            </Field>
+            <Field label="Date retenue"><div className="px-3 py-2 rounded border bg-slate-50 dark:bg-slate-800 text-sm font-semibold">{ddmmyyyy(selectedDate)}</div></Field>
+          </div>
+          <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+            Si la date choisie dans le calendrier n’existe pas dans le fichier Platts, la plateforme retient automatiquement la date Platts disponible la plus proche avant cette date.
+          </div>
+        </CardBody>
+      </Card>
 
-              {mopValues ? (
-                <>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-                    <div className="px-4 py-3 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
-                      <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">MOP brut</div>
-                      <div className="text-2xl font-bold text-blue-700 dark:text-blue-400 mt-1">
-                        {fmt(mopValues.avg, 3)} <span className="text-xs font-normal">$/{mopValues.col.unit}</span>
-                      </div>
-                    </div>
-                    <div className="px-4 py-3 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
-                      <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">MOP + différentiel</div>
-                      <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">
-                        {fmt(mopValues.withDiff, 3)} <span className="text-xs font-normal">$/{mopValues.col.unit}</span>
-                      </div>
-                    </div>
-                    <div className="px-4 py-3 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
-                      <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Équivalent $/bbl</div>
-                      <div className="text-2xl font-bold text-slate-800 dark:text-slate-200 mt-1">
-                        {fmt(mopValues.withDiffBbl, 3)}
-                      </div>
-                    </div>
-                    <div className="px-4 py-3 bg-white dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
-                      <div className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide">Min — Max</div>
-                      <div className="text-base font-semibold text-slate-700 dark:text-slate-300 mt-1">
-                        {fmt(mopValues.min, 2)} — {fmt(mopValues.max, 2)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Push vers deal */}
-                  <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
-                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-3 uppercase">
-                      Pousser ce prix vers un deal
-                    </p>
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <Field label="Deal cible">
-                        <Select value={mopDealId} onChange={e => { setMopDealId(e.target.value); setMopPushed(false); }}>
-                          <option value="">— Choisir un deal —</option>
-                          {deals.map(d => (
-                            <option key={d.id} value={d.id}>
-                              {d.id} — {PRODUCTS[d.product]?.name || d.product} — {d.counterparty}
-                            </option>
-                          ))}
-                        </Select>
-                      </Field>
-                      <div className="flex items-end gap-2">
-                        <Button variant="primary" icon={Zap}
-                          onClick={pushMopToDeal}
-                          disabled={!mopDealId || !onPushToDeal}>
-                          Pousser {fmt(mopValues.withDiffBbl, 3)} $/bbl → deal
-                        </Button>
-                        {mopPushed && (
-                          <span className="text-emerald-600 dark:text-emerald-400 text-sm font-semibold flex items-center gap-1">
-                            <CheckCircle2 className="w-4 h-4" /> Poussé !
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                      Le prix {fmt(mopValues.withDiffBbl, 3)} $/bbl sera enregistré comme <b>prix estimé</b> du deal sélectionné.
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <div className="mt-4 text-center py-6 text-slate-500 dark:text-slate-400 text-sm">
-                  Aucune donnée disponible pour cet assessment. Importez un fichier Platts.
-                </div>
-              )}
-            </CardBody>
-          </Card>
-        </div>
-      )}
-
-      {/* ── SNAPSHOT ──────────────────────────────────────────── */}
       {activeSection === 'snapshot' && (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {PLATTS_COLS.filter(c => ['PCAAS00','AAVJI00','PJAAU00','AAWZB00','PUABA00','PMAAL00','PMAAM00','AAIDT00'].includes(c.code)).map(col => {
-              const p   = getP(col.code);
-              const pMT = p ? toMT(p, col) : null;
-              const d1p  = prevD ? getPrice(dataset, col.code, prevD) : null;
-              const d1MT = d1p ? toMT(d1p, col) : null;
-              const d1   = pMT && d1MT ? pMT - d1MT : null;
-              const d1pct = d1 && d1MT ? d1 / d1MT * 100 : null;
-              return <PriceCard key={col.code} col={col} price={col.unit === 'bbl' ? p : pMT} d1={d1} d1pct={d1pct} />;
-            })}
-          </div>
-
-          {/* Full price table */}
-          <Card>
-            <CardHeader icon={Activity} title="Tous les assessments Platts"
-              subtitle={`Date : ${selectedDate}`} />
-            <CardBody className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 text-xs uppercase text-slate-500 dark:text-slate-400">
-                      <th className="text-left py-2 px-3 w-28">Code</th>
-                      <th className="text-left py-2 px-3">Assessment</th>
-                      <th className="text-left py-2 px-3 w-20">Région</th>
-                      <th className="text-right py-2 px-3">Prix</th>
-                      <th className="text-right py-2 px-3">Unité</th>
-                      <th className="text-right py-2 px-3">D-1</th>
-                      <th className="text-right py-2 px-3">D-1 %</th>
-                      <th className="text-right py-2 px-3">S-1</th>
-                      <th className="text-right py-2 px-3">M-1</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {PLATTS_COLS.map(col => {
-                      const p    = getP(col.code);
-                      if (!p) return null;
-                      const pMT  = toMT(p, col);
-                      const d1p  = prevD ? getPrice(dataset, col.code, prevD) : null;
-                      const d1MT = d1p ? toMT(d1p, col) : null;
-                      const d1   = pMT && d1MT ? pMT - d1MT : null;
-                      const d1pc = d1 && d1MT ? d1 / d1MT * 100 : null;
-                      const w1p  = prevW ? getPrice(dataset, col.code, prevW) : null;
-                      const w1MT = w1p ? toMT(w1p, col) : null;
-                      const w1   = pMT && w1MT ? pMT - w1MT : null;
-                      const m1p  = prevM ? getPrice(dataset, col.code, prevM) : null;
-                      const m1MT = m1p ? toMT(m1p, col) : null;
-                      const m1   = pMT && m1MT ? pMT - m1MT : null;
-                      return (
-                        <tr key={col.code} className="border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/40">
-                          <td className="py-2 px-3 font-mono text-xs" style={{ color: col.color }}>{col.code}</td>
-                          <td className="py-2 px-3 text-slate-800 dark:text-slate-200 text-xs">{col.name}</td>
-                          <td className="py-2 px-3">
-                            <span className="text-[10px] px-1.5 py-0.5 rounded text-white" style={{ backgroundColor: col.color }}>
-                              {col.region}
-                            </span>
-                          </td>
-                          <td className="py-2 px-3 text-right font-bold text-slate-900 dark:text-slate-100">
-                            {fmt(col.unit === 'bbl' ? p : pMT, 2)}
-                          </td>
-                          <td className="py-2 px-3 text-right text-xs text-slate-500 dark:text-slate-400">$/{col.unit}</td>
-                          <td className={`py-2 px-3 text-right text-xs font-semibold ${varColor(d1)}`}>{fmtVar(d1)}</td>
-                          <td className={`py-2 px-3 text-right text-xs ${varColor(d1pc)}`}>{d1pc ? fmtVar(d1pc, 1) + '%' : '—'}</td>
-                          <td className={`py-2 px-3 text-right text-xs ${varColor(w1)}`}>{fmtVar(w1)}</td>
-                          <td className={`py-2 px-3 text-right text-xs ${varColor(m1)}`}>{fmtVar(m1)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </CardBody>
-          </Card>
+          <div className="grid md:grid-cols-4 gap-4">{rows.slice(0, 16).map(row => <SnapshotCard key={row.code} row={row} />)}</div>
+          <Card><CardHeader icon={Zap} title="Signaux rapides" /><CardBody><div className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+            {spreads.cracks.map((c, i) => c.value && <div key={i}>• {c.label} : <b>{fmt(c.value.mt, 2)} $/MT</b> soit <b>{fmt(c.value.bbl, 2)} $/bbl</b></div>)}
+            {!spreads.cracks.some(c => c.value) && <div>Aucun signal calculable avec les données disponibles.</div>}
+          </div></CardBody></Card>
         </>
       )}
 
-      {/* ── CRACK SPREADS ─────────────────────────────────────── */}
-      {activeSection === 'cracks' && (
-        <div className="space-y-4">
-          <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-md text-xs text-blue-800 dark:text-blue-300">
-            <b>Méthode :</b> Crack spread ($/MT) = Prix produit $/MT − (Brent $/bbl × bbl/MT du produit) &nbsp;|&nbsp; Crack ($/bbl) = Prix produit $/bbl − Brent $/bbl
-          </div>
-          <div className="grid md:grid-cols-3 gap-3">
-            <CrackCard label="Gasoil 0.1% FOB Med" spreadMT={cracks.gasoil?.mt} spreadBbl={cracks.gasoil?.bbl} d1MT={cracks.gasoil?.d1} accent="blue" />
-            <CrackCard label="Jet A1 CIF NWE"      spreadMT={cracks.jet?.mt}    spreadBbl={cracks.jet?.bbl}    d1MT={cracks.jet?.d1}    accent="red" />
-            <CrackCard label="Gasoline CIF Med"    spreadMT={cracks.gasoline?.mt} spreadBbl={cracks.gasoline?.bbl} d1MT={cracks.gasoline?.d1} accent="green" />
-            <CrackCard label="HSFO 3.5%S CIF NWE"  spreadMT={cracks.fo35?.mt}   spreadBbl={cracks.fo35?.bbl}   d1MT={cracks.fo35?.d1}   accent="slate" />
-            <CrackCard label="FO 1%S FOB Med"      spreadMT={cracks.fo1?.mt}    spreadBbl={cracks.fo1?.bbl}    d1MT={cracks.fo1?.d1}    accent="slate" />
-            <CrackCard label="Butane FOB NWE"      spreadMT={cracks.butane?.mt} spreadBbl={cracks.butane?.bbl} d1MT={cracks.butane?.d1} accent="green" />
-          </div>
-          {/* Table synthèse */}
-          <Card>
-            <CardHeader icon={BarChart3} title="Synthèse cracking margins" subtitle="Crack vs Dated Brent" />
-            <CardBody className="p-0">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 text-xs uppercase text-slate-500 dark:text-slate-400">
-                    <th className="text-left py-2 px-4">Produit</th>
-                    <th className="text-right py-2 px-4">Prix $/MT</th>
-                    <th className="text-right py-2 px-4">Brent conv. $/MT</th>
-                    <th className="text-right py-2 px-4">Crack $/MT</th>
-                    <th className="text-right py-2 px-4">Crack $/bbl</th>
-                    <th className="text-left py-2 px-4">Signal</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { code: 'AAVJI00', label: 'Gasoil 0.1%S FOB Med', c: cracks.gasoil  },
-                    { code: 'AAWZB00', label: 'Gasoline CIF Med',     c: cracks.gasoline},
-                    { code: 'PJAAU00', label: 'Jet A1 CIF NWE',       c: cracks.jet     },
-                    { code: 'AAIDL00', label: 'Jet A1 FOB Med',       c: (() => { const col = colByCode['AAIDL00']; const p = toMTp('AAIDL00'); return p && brent ? { ...crackSpread(p, brent, col.bblMT), d1: null } : null; })() },
-                    { code: 'PUAAK00', label: 'FO 1%S FOB Med',       c: cracks.fo1     },
-                    { code: 'PUABA00', label: 'HSFO 3.5%S CIF NWE',   c: cracks.fo35    },
-                  ].map(({ code, label, c }) => {
-                    if (!c) return null;
-                    const col = colByCode[code];
-                    const brentConv = brent ? brent * col.bblMT : null;
-                    const signal = c.mt > 300 ? '🔥 Exceptionnel' : c.mt > 150 ? '✅ Fort' : c.mt > 50 ? '📊 Normal' : c.mt < 0 ? '⚠️ Négatif' : '📉 Faible';
-                    return (
-                      <tr key={code} className="border-b border-slate-100 dark:border-slate-700">
-                        <td className="py-2 px-4 text-slate-800 dark:text-slate-200">{label}</td>
-                        <td className="py-2 px-4 text-right font-semibold text-slate-900 dark:text-slate-100">{fmt(toMTp(code), 2)}</td>
-                        <td className="py-2 px-4 text-right text-slate-600 dark:text-slate-400">{brentConv ? fmt(brentConv, 2) : '—'}</td>
-                        <td className={`py-2 px-4 text-right font-bold ${c.mt > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
-                          {fmtVar(c.mt)}
-                        </td>
-                        <td className={`py-2 px-4 text-right text-sm ${c.bbl > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}`}>
-                          {fmtVar(c.bbl, 2)}
-                        </td>
-                        <td className="py-2 px-4 text-sm text-slate-700 dark:text-slate-300">{signal}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </CardBody>
-          </Card>
-        </div>
-      )}
-
-      {/* ── DIFFÉRENTIELS ─────────────────────────────────────── */}
-      {activeSection === 'differentials' && (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader icon={ArrowUpDown} title="Spreads de localisation & qualité"
-              subtitle="Opportunités d'arbitrage et primes géographiques" />
-            <CardBody className="p-0">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 text-xs uppercase text-slate-500 dark:text-slate-400">
-                    <th className="text-left py-2 px-4">Spread</th>
-                    <th className="text-right py-2 px-4">$/MT</th>
-                    <th className="text-right py-2 px-4">$/bbl</th>
-                    <th className="text-left py-2 px-4">Signal trader</th>
-                    <th className="text-left py-2 px-4">Interprétation</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {spreads.map(s => {
-                    if (s.value === null) return null;
-                    const abs = Math.abs(s.value);
-                    let interpretation = '';
-                    let signal = '';
-                    if (s.label.includes('Butane FOB W.Med')) {
-                      signal = s.value > 150 ? '🚀 Arb ouvert' : s.value > 80 ? '👀 À surveiller' : '➡️ Spread normal';
-                      interpretation = s.value > 150 ? `Écart élevé — envisager un flux NWE→W.Med si le fret le permet` : `Spread W.Med/NWE standard pour la saisonnalité`;
-                    } else if (s.label.includes('Jet CIF NWE vs FOB Med')) {
-                      interpretation = `Prime NWE sur Med = freight + prime qualité air NWE`;
-                      signal = s.value > 40 ? '✈️ Flux Med→NWE rentable' : '📊 Normal';
-                    } else if (s.label.includes('FOB Med vs Futures ICE')) {
-                      signal = s.value < -15 ? '📉 Contango physique' : s.value > 15 ? '📈 Backwardation physique' : '➡️ Proche convergence';
-                      interpretation = s.value < 0 ? `Physique décote de ${fmt(Math.abs(s.value), 1)} $/MT vs futures — acheteurs attendent` : `Physique prime de ${fmt(s.value, 1)} $/MT — demande immédiate forte`;
-                    } else if (s.label.includes('FO 1%S vs 3.5%S')) {
-                      signal = s.value > 25 ? '♻️ Spread IMO2020 élevé' : '📊 Spread bas-soufre standard';
-                      interpretation = `Prime low-sulfur post-IMO2020 — écart bunker LSFO/HSFO`;
-                    } else if (s.label.includes('FOB Med vs FOB AG')) {
-                      signal = s.value > 50 ? '🌍 Med cher vs AG' : s.value < 0 ? '🌍 AG cher vs Med' : '➡️ Parité régionale';
-                      interpretation = `Différentiel Med/AG gasoil = arbitrage shipping possible`;
-                    } else {
-                      signal = abs > 30 ? '📌 Notable' : '➡️ Standard';
-                      interpretation = `${s.signal}`;
-                    }
-                    return (
-                      <tr key={s.label} className="border-b border-slate-100 dark:border-slate-700">
-                        <td className="py-2 px-4 text-slate-800 dark:text-slate-200 text-xs">{s.label}</td>
-                        <td className={`py-2 px-4 text-right font-bold text-sm ${varColor(s.value)}`}>{fmtVar(s.value)}</td>
-                        <td className={`py-2 px-4 text-right text-xs ${varColor(s.value)}`}>
-                          {fmt(s.value / 7.5, 2)}
-                        </td>
-                        <td className="py-2 px-4 text-xs">{signal}</td>
-                        <td className="py-2 px-4 text-xs text-slate-600 dark:text-slate-400">{interpretation}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </CardBody>
-          </Card>
-
-          {/* AG market */}
-          <Card>
-            <CardHeader icon={Globe} title="Marché Arab Gulf & Asie"
-              subtitle="Assessments AG et Singapore — absents des plateformes standard" />
-            <CardBody>
-              <div className="grid md:grid-cols-2 gap-4">
-                {['AAIDT00','AFUJK00','AAICY00','PGAEY00'].map(code => {
-                  const col = colByCode[code];
-                  if (!col) return null;
-                  const p = getP(code);
-                  if (!p) return <div key={code} className="text-xs text-slate-400 dark:text-slate-500 p-3 border border-dashed border-slate-300 dark:border-slate-600 rounded-md">
-                    {col.abbr} — données non disponibles pour cette date
-                  </div>;
-                  const pMT = toMT(p, col);
-                  const d1p = prevD ? getPrice(dataset, code, prevD) : null;
-                  const d1MT = d1p ? toMT(d1p, col) : null;
-                  const d1 = pMT && d1MT ? pMT - d1MT : null;
-                  const crack = brent ? crackSpread(pMT, brent, col.bblMT) : null;
-                  return (
-                    <div key={code} className="p-3 border border-slate-200 dark:border-slate-700 rounded-md bg-white dark:bg-slate-800">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <span className="font-mono text-xs text-amber-600 dark:text-amber-400">{col.code}</span>
-                          <div className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5">{col.name}</div>
-                        </div>
-                        <span className="text-xs px-2 py-0.5 rounded text-white bg-amber-600">{col.region}</span>
-                      </div>
-                      <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
-                        <div>
-                          <div className="text-slate-500 dark:text-slate-400">Prix</div>
-                          <div className="font-bold text-slate-900 dark:text-slate-100">{fmt(p, 2)} $/{col.unit}</div>
-                        </div>
-                        <div>
-                          <div className="text-slate-500 dark:text-slate-400">D-1</div>
-                          <div className={`font-semibold ${varColor(d1)}`}>{fmtVar(d1)}</div>
-                        </div>
-                        <div>
-                          <div className="text-slate-500 dark:text-slate-400">Crack</div>
-                          <div className={`font-semibold ${crack ? varColor(crack.bbl) : ''}`}>
-                            {crack ? fmtVar(crack.bbl, 2) + ' $/bbl' : '—'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+      {activeSection === 'mop' && (
+        <Card>
+          <CardHeader icon={Calculator} title="MOP Calculator — Moyenne de période" subtitle="Calcule une moyenne sur les N dernières cotations disponibles, avec différentiel." />
+          <CardBody>
+            <div className="grid md:grid-cols-4 gap-4 mb-4">
+              <Field label="Code Platts"><Select value={mopCode} onChange={e => setMopCode(e.target.value)}>{columns.map(code => <option key={code} value={code}>{getCodeMeta(code, dataset.descriptions).name} ({code})</option>)}</Select></Field>
+              <Field label="Nombre de jours"><Input type="number" min="1" value={mopDays} onChange={e => setMopDays(e.target.value)} /></Field>
+              <Field label="Différentiel / prime"><Input type="number" step="0.01" value={mopDiff} onChange={e => setMopDiff(e.target.value)} /></Field>
+              <Field label="Pousser vers deal"><Select value={mopDealId} onChange={e => setMopDealId(e.target.value)}><option value="">— Aucun —</option>{deals.map(d => <option key={d.id} value={d.id}>{d.id} — {d.counterparty}</option>)}</Select></Field>
+            </div>
+            {mopValues && (
+              <div className="grid md:grid-cols-4 gap-4 mb-4">
+                <div className="rounded-xl border p-4 bg-slate-50 dark:bg-slate-800"><div className="text-xs uppercase text-slate-500">Moyenne</div><div className="text-2xl font-bold">{fmt(mopValues.avgMT, 2)} $/MT</div></div>
+                <div className="rounded-xl border p-4 bg-slate-50 dark:bg-slate-800"><div className="text-xs uppercase text-slate-500">Moyenne $/bbl</div><div className="text-2xl font-bold">{fmt(mopValues.avgBbl, 2)}</div></div>
+                <div className="rounded-xl border p-4 bg-slate-50 dark:bg-slate-800"><div className="text-xs uppercase text-slate-500">Différentiel</div><div className="text-2xl font-bold">{fmt(mopValues.diff, 2)}</div></div>
+                <div className="rounded-xl border p-4 bg-blue-50 dark:bg-blue-950/30"><div className="text-xs uppercase text-blue-700">Prix final</div><div className="text-2xl font-bold">{fmt(mopValues.finalMT, 2)} $/MT</div></div>
               </div>
-            </CardBody>
-          </Card>
+            )}
+            <Button variant="primary" icon={TrendingUp} onClick={pushMop} disabled={!mopDealId || !mopValues}>Envoyer MOP vers le deal</Button>
+            <div className="overflow-x-auto mt-4"><table className="w-full text-sm"><thead><tr className="bg-slate-50 dark:bg-slate-800"><th className="p-2 text-left">Date</th><th className="p-2 text-right">Prix</th></tr></thead><tbody>{mopValues?.window.map(x => <tr key={x.date} className="border-b"><td className="p-2">{ddmmyyyy(x.date)}</td><td className="p-2 text-right font-semibold">{fmt(x.mt, 2)}</td></tr>)}</tbody></table></div>
+          </CardBody>
+        </Card>
+      )}
+
+      {activeSection === 'spreads' && (
+        <div className="grid md:grid-cols-2 gap-6">
+          <Card><CardHeader icon={Activity} title="Crack spreads" /><CardBody><div className="space-y-3">{spreads.cracks.map((c, i) => <div key={i} className="rounded-lg border p-3"><div className="font-semibold">{c.label}</div><div className="text-sm text-slate-500">{c.value ? `${fmt(c.value.mt, 2)} $/MT | ${fmt(c.value.bbl, 2)} $/bbl` : 'Non calculable'}</div></div>)}</div></CardBody></Card>
+          <Card><CardHeader icon={Zap} title="Spreads physiques" /><CardBody><div className="space-y-3">{spreads.diffs.map((s, i) => <div key={i} className="rounded-lg border p-3"><div className="font-semibold">{s.label}</div><div className={`text-sm ${s.value >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{s.value != null ? `${s.value >= 0 ? '+' : ''}${fmt(s.value, 2)} $/MT` : 'Non calculable'}</div></div>)}</div></CardBody></Card>
         </div>
       )}
 
-      {/* ── CHART ─────────────────────────────────────────────── */}
       {activeSection === 'chart' && (
-        <div className="space-y-4">
-          <Card>
-            <CardHeader icon={BarChart3} title="Historique des prix"
-              subtitle="Sélectionner les séries à afficher ($/MT normalisé)"
-              action={
-                <div className="flex flex-wrap gap-1">
-                  {PLATTS_COLS.filter(c => ['PCAAS00','AAVJI00','PJAAU00','AAWZB00','PUABA00','PMAAM00'].includes(c.code)).map(col => (
-                    <button key={col.code}
-                      onClick={() => setChartSeries(prev =>
-                        prev.includes(col.code) ? prev.filter(c => c !== col.code) : [...prev, col.code]
-                      )}
-                      className={`text-xs px-2 py-1 rounded-md border transition ${
-                        chartSeries.includes(col.code)
-                          ? 'text-white'
-                          : 'text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
-                      }`}
-                      style={chartSeries.includes(col.code) ? { backgroundColor: col.color, borderColor: col.color } : {}}>
-                      {col.abbr}
-                    </button>
-                  ))}
-                </div>
-              }
-            />
-            <CardBody>
-              <div style={{ height: 420 }}>
-                <ResponsiveContainer>
-                  <LineChart data={chartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickFormatter={d => d.slice(5)} />
-                    <YAxis stroke="#94a3b8" fontSize={10} domain={['auto', 'auto']} />
-                    <Tooltip
-                      formatter={(val, name) => {
-                        const col = colByCode[name];
-                        return [`${fmt(val, 2)} $/MT`, col?.abbr ?? name];
-                      }}
-                      labelFormatter={l => `Date : ${l}`}
-                    />
-                    <Legend formatter={name => colByCode[name]?.abbr ?? name} />
-                    {chartSeries.map(code => {
-                      const col = colByCode[code];
-                      if (!col) return null;
-                      return (
-                        <Line key={code} type="monotone" dataKey={code}
-                          stroke={col.chartColor} strokeWidth={2}
-                          dot={false} activeDot={{ r: 4 }}
-                          connectNulls={false} />
-                      );
-                    })}
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardBody>
-          </Card>
-        </div>
+        <Card><CardHeader icon={TrendingUp} title="Évolution" /><CardBody><div className="h-96"><ResponsiveContainer width="100%" height="100%"><LineChart data={chartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="date" minTickGap={24} /><YAxis /><Tooltip /><Legend />{chartCodes.map((code, i) => <Line key={code} type="monotone" dataKey={code} stroke={COLOR_POOL[i % COLOR_POOL.length]} dot={false} connectNulls name={`${getCodeMeta(code, dataset.descriptions).abbr || code} (${code})`} />)}</LineChart></ResponsiveContainer></div></CardBody></Card>
       )}
 
-      {/* ── SIGNAUX ───────────────────────────────────────────── */}
-      {activeSection === 'signals' && (
-        <div className="space-y-3">
-          {signals.length === 0 && (
-            <Card>
-              <CardBody>
-                <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 py-4">
-                  <CheckCircle2 className="w-6 h-6" />
-                  <span className="text-sm">Aucun signal particulier détecté pour cette date.</span>
-                </div>
-              </CardBody>
-            </Card>
-          )}
-          {signals.map((s, i) => {
-            const palette = {
-              high: { bg: 'bg-red-50 dark:bg-red-900/20',     bd: 'border-red-300 dark:border-red-700',     tt: 'text-red-800 dark:text-red-300',     ico: AlertTriangle },
-              bull: { bg: 'bg-emerald-50 dark:bg-emerald-900/20', bd: 'border-emerald-300 dark:border-emerald-700', tt: 'text-emerald-800 dark:text-emerald-300', ico: TrendingUp },
-              bear: { bg: 'bg-amber-50 dark:bg-amber-900/20', bd: 'border-amber-300 dark:border-amber-700', tt: 'text-amber-800 dark:text-amber-300', ico: TrendingDown },
-              arb:  { bg: 'bg-blue-50 dark:bg-blue-900/20',   bd: 'border-blue-300 dark:border-blue-700',   tt: 'text-blue-800 dark:text-blue-300',   ico: Layers },
-              info: { bg: 'bg-slate-50 dark:bg-slate-800',    bd: 'border-slate-200 dark:border-slate-600', tt: 'text-slate-700 dark:text-slate-300',  ico: Activity },
-            }[s.level] ?? { bg: 'bg-slate-50 dark:bg-slate-800', bd: 'border-slate-200', tt: 'text-slate-700', ico: Activity };
-            const Icon = palette.ico;
-            return (
-              <div key={i} className={`flex items-start gap-3 p-4 rounded-md border ${palette.bg} ${palette.bd}`}>
-                <Icon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${palette.tt}`} />
-                <p className={`text-sm ${palette.tt}`}>{s.text}</p>
-              </div>
-            );
-          })}
-
-          {/* Analyse rapide de la date */}
-          <Card>
-            <CardHeader icon={Activity} title={`Analyse rapide — ${selectedDate}`} />
-            <CardBody>
-              <div className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
-                {brent && <p>• <b>Brent Dated à {fmt(brent, 2)} $/bbl</b> — {prevD && getPrice(dataset,'PCAAS00',prevD) ? `${fmtVar((brent - getPrice(dataset,'PCAAS00',prevD)) / getPrice(dataset,'PCAAS00',prevD) * 100, 1)}% vs J-1` : ''}.</p>}
-                {cracks.gasoil && <p>• Crack <b>Gasoil</b> : {fmtVar(cracks.gasoil.mt)} $/MT ({fmtVar(cracks.gasoil.bbl, 2)} $/bbl) — {cracks.gasoil.mt > 300 ? 'margin refinery exceptionnelle, forte demande distillats.' : cracks.gasoil.mt > 150 ? 'bonne marge gasoil.' : 'marge modérée.'}</p>}
-                {cracks.jet    && <p>• Crack <b>Jet A1 CIF NWE</b> : {fmtVar(cracks.jet.mt)} $/MT — {cracks.jet.mt > 350 ? 'aviation très forte, excellent pour fret AMKO en Jet.' : 'crack jet solide.'}</p>}
-                {cracks.fo35   && <p>• Crack <b>HSFO 3.5%S</b> : {fmtVar(cracks.fo35.mt)} $/MT ({cracks.fo35.mt < 0 ? 'négatif — FO se vend sous la valeur du brut.' : 'positif.'}).</p>}
-                {spreads.find(s => s.label.includes('Butane FOB W.Med'))?.value != null && <p>• Spread <b>Butane W.Med/NWE</b> : +{fmt(spreads.find(s => s.label.includes('Butane FOB W.Med'))?.value, 0)} $/MT — {(spreads.find(s => s.label.includes('Butane FOB W.Med'))?.value ?? 0) > 100 ? 'arbitrage potentiel à étudier.' : 'spread dans les normes.'}</p>}
-              </div>
-            </CardBody>
-          </Card>
-        </div>
+      {activeSection === 'table' && (
+        <Card><CardHeader icon={Database} title={`Prix Platts du ${ddmmyyyy(selectedDate)}`} /><CardBody className="p-0"><div className="overflow-x-auto max-h-[560px]"><table className="w-full text-sm"><thead><tr className="bg-slate-50 dark:bg-slate-800 border-b"><th className="text-left p-3">Code</th><th className="text-left p-3">Produit</th><th className="text-right p-3">Prix</th><th className="text-right p-3">Variation J-1</th></tr></thead><tbody>{rows.map(({ code, meta, price, variation }) => <tr key={code} className="border-b border-slate-100 dark:border-slate-700"><td className="p-3 font-mono text-xs">{code}</td><td className="p-3">{meta.name}</td><td className="p-3 text-right font-semibold">{fmt(price, 2)}</td><td className={`p-3 text-right ${variation?.abs >= 0 ? 'text-emerald-600' : variation ? 'text-red-600' : 'text-slate-400'}`}>{variation ? `${variation.abs >= 0 ? '+' : ''}${fmt(variation.abs, 2)} / ${fmt(variation.pct, 2)}%` : '—'}</td></tr>)}</tbody></table></div></CardBody></Card>
       )}
     </div>
   );

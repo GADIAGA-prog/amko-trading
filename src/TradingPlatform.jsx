@@ -9,6 +9,7 @@ import {
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
 import { uid, todayISO }              from './utils.js';
+import { buildDatasetFromStore }      from './utils/plattsStore.js';
 import { loadUsers, saveUsers, loadSession, saveSession, genSalt, hashPassword } from './auth/authHelpers.js';
 import { AmkoLogo }                   from './components/Logo.jsx';
 
@@ -48,7 +49,6 @@ const TAB_SECTION_MAP = {
   documents: 'docs', resources: 'hub', profile: 'account', users: 'account',
 };
 
-// ── Dark mode initialisation synchrone (évite le flash) ──────────
 function getInitialDarkMode() {
   try { return localStorage.getItem('amko_theme') === 'dark'; }
   catch { return false; }
@@ -63,24 +63,31 @@ export default function TradingPlatform() {
   const [editingDeal,  setEditingDeal]  = useState(null);
   const [loaded,       setLoaded]       = useState(false);
   const [marketPrices,  setMarketPrices]  = useState({ brent: '', wti: '', gasoil: '', dubai: '', jet: '' });
-  const [plattsDataset, setPlattsDataset] = useState(null);
-  const [openSections,  setOpenSections]  = useState(() => new Set([TAB_SECTION_MAP['dashboard'] ?? 'main']));
+  const [plattsDataset, setPlattsDataset] = useState(() => {
+    const ds = buildDatasetFromStore();
+    return ds.dates?.length ? ds : null;
+  });
+  const [openSections, setOpenSections] = useState(() => new Set([TAB_SECTION_MAP['dashboard'] ?? 'main']));
 
-  // ── Persister le thème ────────────────────────────────────────
+  useEffect(() => {
+    const refreshPlatts = () => {
+      const ds = buildDatasetFromStore();
+      setPlattsDataset(ds.dates?.length ? ds : null);
+    };
+    refreshPlatts();
+    window.addEventListener('amko:platts-updated', refreshPlatts);
+    return () => window.removeEventListener('amko:platts-updated', refreshPlatts);
+  }, []);
+
   useEffect(() => {
     try { localStorage.setItem('amko_theme', darkMode ? 'dark' : 'light'); }
     catch {}
   }, [darkMode]);
 
-  // ── Auth : restaurer la session ───────────────────────────────
   useEffect(() => {
     (async () => {
       try {
         const users = await loadUsers();
-
-        // Premier accès sur ce navigateur : créer et connecter un admin local
-        // automatiquement, sans afficher de formulaire. Le visiteur peut changer
-        // son mot de passe depuis Mon Profil (mot de passe par défaut : "amko").
         if (users.length === 0) {
           const salt  = genSalt();
           const admin = {
@@ -100,8 +107,6 @@ export default function TradingPlatform() {
           setAuthChecked(true);
           return;
         }
-
-        // Session existante → la restaurer si elle n'a pas expiré
         const session = await loadSession();
         if (session) {
           const elapsed = (Date.now() - session.lastActivity) / 60000;
@@ -122,7 +127,6 @@ export default function TradingPlatform() {
     })();
   }, []);
 
-  // ── Auth : auto-logout sur inactivité ────────────────────────
   useEffect(() => {
     if (!currentUser) return;
     const tickActivity = async () => {
@@ -132,7 +136,6 @@ export default function TradingPlatform() {
     window.addEventListener('mousemove', tickActivity);
     window.addEventListener('keydown',   tickActivity);
     window.addEventListener('click',     tickActivity);
-
     const interval = setInterval(async () => {
       const s = await loadSession();
       if (!s) return;
@@ -142,7 +145,6 @@ export default function TradingPlatform() {
         setCurrentUser(null);
       }
     }, 30000);
-
     return () => {
       window.removeEventListener('mousemove', tickActivity);
       window.removeEventListener('keydown',   tickActivity);
@@ -151,7 +153,6 @@ export default function TradingPlatform() {
     };
   }, [currentUser]);
 
-  // ── Deals : isolation par utilisateur ────────────────────────
   const dealsKey = currentUser ? `deals_user_${currentUser.id}` : null;
 
   useEffect(() => {
@@ -173,7 +174,22 @@ export default function TradingPlatform() {
     })();
   }, [deals, loaded, dealsKey]);
 
-  // ── Handlers ─────────────────────────────────────────────────
+  // ── Navigation helpers ────────────────────────────────────────
+  const navigateTo = (tabId) => {
+    setActiveTab(tabId);
+    const section = TAB_SECTION_MAP[tabId];
+    if (section) setOpenSections(prev => new Set([...prev, section]));
+  };
+
+  const toggleSection = (key) => {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  // ── Auth handlers ─────────────────────────────────────────────
   const handleAuth = (user) => { setCurrentUser(user); navigateTo('dashboard'); };
 
   const logout = async () => {
@@ -181,12 +197,13 @@ export default function TradingPlatform() {
     await saveSession(null);
     setCurrentUser(null);
     setDeals([]);
-    setActiveTab('dashboard');
+    navigateTo('dashboard');
   };
 
   const isViewer = currentUser?.role === 'viewer';
   const isAdmin  = currentUser?.role === 'admin';
 
+  // ── Deal handlers ─────────────────────────────────────────────
   const saveDeal = (deal) => {
     if (isViewer) { alert('Les utilisateurs Viewer ne peuvent pas créer ou modifier de deals.'); return; }
     setDeals(ds => {
@@ -208,22 +225,14 @@ export default function TradingPlatform() {
     setEditingDeal(d); navigateTo('new-deal');
   };
 
-  // Duplicate: copie le deal avec nouvel ID, statut "open", date d'aujourd'hui
   const duplicateDeal = (d) => {
     if (isViewer) { alert('Les utilisateurs Viewer ne peuvent pas créer de deals.'); return; }
-    const newDeal = {
-      ...d,
-      id:        uid(),
-      status:    'open',
-      createdAt: todayISO(),
-      notes:     `[Dupliqué de ${d.id}] ${d.notes || ''}`.trim(),
-    };
+    const newDeal = { ...d, id: uid(), status: 'open', createdAt: todayISO(), notes: `[Dupliqué de ${d.id}] ${d.notes || ''}`.trim() };
     setDeals(ds => [...ds, newDeal]);
     setEditingDeal(newDeal);
     navigateTo('new-deal');
   };
 
-  // Import JSON deals (merge, skip existing IDs)
   const importDeals = (imported) => {
     setDeals(existing => {
       const existingIds = new Set(existing.map(d => d.id));
@@ -232,74 +241,18 @@ export default function TradingPlatform() {
     });
   };
 
-  // Restore deals (full replace — from MyProfile backup)
   const restoreDeals = (imported) => { setDeals(imported); };
 
-  const navigateTo = (tabId) => {
-    setActiveTab(tabId);
-    const section = TAB_SECTION_MAP[tabId];
-    if (section) setOpenSections(prev => new Set([...prev, section]));
-  };
-
-  const toggleSection = (key) => {
-    setOpenSections(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
-    });
-  };
-
-  // Market prices (Fix 3)
-  const setMarketPrice = (key, val) => setMarketPrices(prev => ({ ...prev, [key]: val }));
-
-  // Freight → enregistrer dans un deal
-  const saveFreight = (dealId, freightData) => {
-    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: freightData } : d));
-  };
-
-  // Lots → enregistrer dans un deal
-  const saveLots = (dealId, lots) => {
-    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, lots } : d));
-  };
-
-  // Risk Matrix → enregistrer dans un deal
-  const saveRiskMatrix = (dealId, riskData) => {
-    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, riskMatrix: riskData } : d));
-  };
-
-  // PnL → sync le fret modifié manuellement vers le deal
-  const savePnLFreight = (dealId, freightAmount) => {
-    setDeals(ds => ds.map(d =>
-      d.id === dealId
-        ? { ...d, freight: { ...(d.freight || {}), totalFreight: freightAmount } }
-        : d,
-    ));
-  };
-
-  // PricingValidation FX → enregistrer dans un deal
-  const savePricingValidation = (dealId, pvData) => {
-    setDeals(ds => ds.map(d =>
-      d.id === dealId ? { ...d, pricingValidation: pvData } : d,
-    ));
-  };
-
-  // Pricing → enregistrer dans un deal (+ mise à jour de estimatedPrice)
-  const savePricing = (dealId, pricingData) => {
-    setDeals(ds => ds.map(d =>
-      d.id === dealId
-        ? { ...d, pricing: pricingData, estimatedPrice: String(pricingData.finalPrice) }
-        : d,
-    ));
-  };
-
-  // MOP Platts → pousser le prix vers estimatedPrice du deal
-  const pushMopToDeal = (dealId, plattsCode, priceBbl) => {
-    setDeals(ds => ds.map(d =>
-      d.id === dealId
-        ? { ...d, estimatedPrice: String(Math.round(priceBbl * 1000) / 1000) }
-        : d,
-    ));
-  };
+  // ── Sub-module save handlers ──────────────────────────────────
+  const setMarketPrice      = (key, val) => setMarketPrices(prev => ({ ...prev, [key]: val }));
+  const saveFreight         = (dealId, freightData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: freightData } : d));
+  const saveLots            = (dealId, lots) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, lots } : d));
+  const saveHedge           = (dealId, hedgeData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, hedging: hedgeData, hedgeRatio: hedgeData.hedgeRatio } : d));
+  const saveRiskMatrix      = (dealId, riskData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, riskMatrix: riskData } : d));
+  const savePnLFreight      = (dealId, freightAmount) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: { ...(d.freight || {}), totalFreight: freightAmount } } : d));
+  const savePricingValidation = (dealId, pvData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pricingValidation: pvData } : d));
+  const savePricing         = (dealId, pricingData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pricing: pricingData, estimatedPrice: String(pricingData.finalPrice) } : d));
+  const pushMopToDeal       = (dealId, plattsCode, priceBbl) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, estimatedPrice: String(Math.round(priceBbl * 1000) / 1000), plattsCode } : d));
 
   // ── Gardes ───────────────────────────────────────────────────
   if (!authChecked) {
@@ -312,13 +265,7 @@ export default function TradingPlatform() {
     );
   }
 
-  if (!currentUser) {
-    return (
-      <div className={darkMode ? 'dark' : ''}>
-        <AuthScreen onAuth={handleAuth} />
-      </div>
-    );
-  }
+  if (!currentUser) return <div className={darkMode ? 'dark' : ''}><AuthScreen onAuth={handleAuth} /></div>;
 
   // ── Navigation ────────────────────────────────────────────────
   const nav = [
@@ -371,13 +318,12 @@ export default function TradingPlatform() {
 
           <nav className="flex-1 py-2 overflow-y-auto">
             {Object.entries(sections).map(([sectionKey, section]) => {
-              const items    = nav.filter(n => n.section === sectionKey);
+              const items     = nav.filter(n => n.section === sectionKey);
               if (items.length === 0) return null;
-              const isOpen   = openSections.has(sectionKey);
+              const isOpen    = openSections.has(sectionKey);
               const hasActive = items.some(n => n.id === activeTab);
               return (
                 <div key={sectionKey} className="mb-1">
-                  {/* En-tête de section cliquable */}
                   <button
                     onClick={() => toggleSection(sectionKey)}
                     className={`w-full flex items-center justify-between px-4 py-2 text-xs uppercase font-semibold transition
@@ -389,7 +335,6 @@ export default function TradingPlatform() {
                     <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-0' : '-rotate-90'}`} />
                   </button>
 
-                  {/* Items déroulants */}
                   <div style={{
                     maxHeight: isOpen ? `${items.length * 44}px` : '0px',
                     overflow: 'hidden',
@@ -401,10 +346,10 @@ export default function TradingPlatform() {
                       return (
                         <button key={n.id}
                           onClick={() => { if (n.id === 'new-deal') setEditingDeal(null); navigateTo(n.id); }}
-                          className={`w-full flex items-center gap-3 pl-6 pr-4 py-2 text-sm transition ${
+                          className={`w-full flex items-center gap-3 pr-4 py-2 text-sm transition ${
                             active
                               ? 'bg-blue-700 text-white border-l-4 border-amber-400 pl-5'
-                              : 'text-slate-300 hover:bg-slate-800 border-l-4 border-transparent'
+                              : 'text-slate-300 hover:bg-slate-800 border-l-4 border-transparent pl-6'
                           }`}>
                           <Icon className="w-4 h-4 flex-shrink-0" />
                           <span className="truncate">{n.label}</span>
@@ -417,16 +362,14 @@ export default function TradingPlatform() {
             })}
           </nav>
 
-          {/* Dark mode toggle + user info */}
+          {/* Dark mode + user info */}
           <div className="border-t border-slate-700 p-4 space-y-3">
-            {/* Moon / Sun toggle */}
             <button onClick={() => setDarkMode(d => !d)}
               className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 rounded-md transition">
               {darkMode
                 ? <><Sun className="w-4 h-4 text-amber-400" /> Mode clair</>
                 : <><Moon className="w-4 h-4 text-slate-400" /> Mode sombre</>}
             </button>
-
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                 {currentUser.fullName.split(' ').map(s => s[0]).join('').toUpperCase().slice(0, 2)}
@@ -438,7 +381,6 @@ export default function TradingPlatform() {
                 </div>
               </div>
             </div>
-
             <button onClick={logout}
               className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium bg-slate-800 hover:bg-red-700 text-slate-200 hover:text-white rounded-md transition">
               <LogOut className="w-3.5 h-3.5" />Se déconnecter
@@ -449,77 +391,33 @@ export default function TradingPlatform() {
         {/* ── Main content ─────────────────────────────────────── */}
         <main className="flex-1 overflow-auto">
           <div className="max-w-7xl mx-auto p-6 lg:p-8">
-            {activeTab === 'advisor' && (
-              <Advisor currentUser={currentUser} marketPrices={marketPrices} />
-            )}
-            {activeTab === 'deal-manager-agent' && (
-              <DealManagerLocal deals={deals} marketPrices={marketPrices} plattsDataset={plattsDataset} />
-            )}
-            {activeTab === 'dashboard' && (
-              <Dashboard deals={deals} goTo={navigateTo}
-                marketPrices={marketPrices} setMarketPrice={setMarketPrice} />
-            )}
+            {activeTab === 'advisor'            && <Advisor currentUser={currentUser} marketPrices={marketPrices} />}
+            {activeTab === 'deal-manager-agent' && <DealManagerLocal deals={deals} marketPrices={marketPrices} plattsDataset={plattsDataset} />}
+            {activeTab === 'dashboard'          && <Dashboard deals={deals} goTo={navigateTo} marketPrices={marketPrices} setMarketPrice={setMarketPrice} />}
             {activeTab === 'market'    && <Market />}
             {activeTab === 'curve'     && <ForwardCurve />}
-            {activeTab === 'deals'     && (
-              <DealsList deals={deals}
-                onEdit={editDeal} onDelete={deleteDeal}
-                onDuplicate={duplicateDeal} onImportDeals={importDeals} />
-            )}
+            {activeTab === 'deals'     && <DealsList deals={deals} onEdit={editDeal} onDelete={deleteDeal} onDuplicate={duplicateDeal} onImportDeals={importDeals} />}
             {activeTab === 'new-deal' && !isViewer && (
               <NewDeal onSave={saveDeal} editingDeal={editingDeal}
-                onCancel={editingDeal ? () => { setEditingDeal(null); setActiveTab('deals'); } : null} />
+                onCancel={editingDeal ? () => { setEditingDeal(null); navigateTo('deals'); } : null} />
             )}
-            {activeTab === 'optimizer' && <Optimizer deals={deals} />}
-            {activeTab === 'hedging'   && <Hedging   deals={deals} />}
-            {activeTab === 'pricing'   && (
-              <Pricing
-                marketPrices={marketPrices}
-                deals={deals}
-                onPricingSaved={savePricing}
-              />
-            )}
-            {activeTab === 'freight'   && (
-              <Freight deals={deals} onFreightSaved={saveFreight} />
-            )}
-            {activeTab === 'lots'      && (
-              <Lots deals={deals} onLotsUpdated={saveLots} />
-            )}
-            {activeTab === 'pnl'       && <PnL deals={deals} marketPrices={marketPrices} onFreightSaved={savePnLFreight} />}
-            {activeTab === 'lc'        && <LCChecker />}
-            {activeTab === 'risk'      && <RiskMatrix deals={deals} onRiskSaved={saveRiskMatrix} />}
-            {activeTab === 'fx-pricing' && (
-              <FxPricingValidator
-                deals={deals}
-                onPricingValidated={savePricingValidation}
-                currentUser={currentUser}
-              />
-            )}
-            {activeTab === 'spreads'   && <Spreads />}
-            {activeTab === 'rolling'   && <Rolling deals={deals} />}
-            {activeTab === 'platts-board' && (
-              <PlattsBoard
-                plattsDataset={plattsDataset}
-                setMarketPrice={setMarketPrice}
-                deals={deals}
-                onPushToDeal={pushMopToDeal}
-              />
-            )}
-            {activeTab === 'platts'    && (
-              <PlattsImport
-                setMarketPrice={setMarketPrice}
-                marketPrices={marketPrices}
-                onDatasetLoaded={setPlattsDataset}
-              />
-            )}
+            {activeTab === 'optimizer'  && <Optimizer deals={deals} />}
+            {activeTab === 'hedging'    && <Hedging deals={deals} onHedgeSaved={saveHedge} />}
+            {activeTab === 'pricing'    && <Pricing marketPrices={marketPrices} deals={deals} onPricingSaved={savePricing} />}
+            {activeTab === 'freight'    && <Freight deals={deals} onFreightSaved={saveFreight} />}
+            {activeTab === 'lots'       && <Lots deals={deals} onLotsUpdated={saveLots} />}
+            {activeTab === 'pnl'        && <PnL deals={deals} marketPrices={marketPrices} onFreightSaved={savePnLFreight} />}
+            {activeTab === 'lc'         && <LCChecker />}
+            {activeTab === 'risk'       && <RiskMatrix deals={deals} onRiskSaved={saveRiskMatrix} />}
+            {activeTab === 'fx-pricing' && <FxPricingValidator deals={deals} onPricingValidated={savePricingValidation} currentUser={currentUser} />}
+            {activeTab === 'spreads'    && <Spreads />}
+            {activeTab === 'rolling'    && <Rolling deals={deals} />}
+            {activeTab === 'platts-board' && <PlattsBoard plattsDataset={plattsDataset} setMarketPrice={setMarketPrice} deals={deals} onPushToDeal={pushMopToDeal} />}
+            {activeTab === 'platts'    && <PlattsImport setMarketPrice={setMarketPrice} marketPrices={marketPrices} onDatasetLoaded={setPlattsDataset} />}
             {activeTab === 'documents' && <Documents deals={deals} />}
             {activeTab === 'resources' && <Resources />}
-            {activeTab === 'profile'   && (
-              <MyProfile currentUser={currentUser} onRestoreDeals={restoreDeals} />
-            )}
-            {activeTab === 'users' && isAdmin && (
-              <UserManagement currentUser={currentUser} onUserUpdate={setCurrentUser} />
-            )}
+            {activeTab === 'profile'   && <MyProfile currentUser={currentUser} onRestoreDeals={restoreDeals} />}
+            {activeTab === 'users' && isAdmin && <UserManagement currentUser={currentUser} onUserUpdate={setCurrentUser} />}
           </div>
         </main>
       </div>
