@@ -4,7 +4,7 @@ import {
   DollarSign, Anchor, BarChart3, FileCheck2, ShieldAlert, Globe,
   Activity, Layers, Lightbulb, Users, User, LogOut, Moon, Sun,
   FileSpreadsheet, RefreshCw, ClipboardList, Zap, Package, Bot, ShieldCheck,
-  ChevronDown,
+  ChevronDown, Landmark,
 } from 'lucide-react';
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
@@ -39,12 +39,13 @@ import Lots             from './modules/Lots.jsx';
 import Advisor          from './modules/Advisor.jsx';
 import DealManagerLocal    from './modules/DealManagerLocal.jsx';
 import FxPricingValidator  from './modules/FxPricingValidator.jsx';
+import FxForward           from './modules/FxForward.jsx';
 
 const TAB_SECTION_MAP = {
   advisor: 'main', 'deal-manager-agent': 'main', dashboard: 'main', market: 'main', curve: 'main',
   deals: 'deals', 'new-deal': 'deals', lots: 'deals', optimizer: 'deals',
   hedging: 'tools', pricing: 'tools', freight: 'tools', pnl: 'tools', lc: 'tools',
-  risk: 'tools', 'fx-pricing': 'tools', spreads: 'tools', rolling: 'tools',
+  risk: 'tools', 'fx-pricing': 'tools', 'fx-forward': 'tools', spreads: 'tools', rolling: 'tools',
   'platts-board': 'tools', platts: 'tools',
   documents: 'docs', resources: 'hub', profile: 'account', users: 'account',
 };
@@ -285,6 +286,7 @@ export default function TradingPlatform() {
     { id: 'lc',        label: 'LC Checker',        icon: FileCheck2,      section: 'tools' },
     { id: 'risk',          label: 'Risques',           icon: ShieldAlert,  section: 'tools' },
     { id: 'fx-pricing',   label: 'FX Pricing',        icon: ShieldCheck,  section: 'tools' },
+    { id: 'fx-forward',  label: 'Couverture FX',     icon: Landmark,     section: 'tools' },
     { id: 'spreads',  label: 'Spreads',           icon: TrendingUp,      section: 'tools' },
     { id: 'rolling',  label: 'Rolling',           icon: RefreshCw,       section: 'tools' },
     { id: 'platts-board', label: 'Platts Board',   icon: Zap,             section: 'tools' },
@@ -409,7 +411,8 @@ export default function TradingPlatform() {
             {activeTab === 'pnl'        && <PnL deals={deals} marketPrices={marketPrices} onFreightSaved={savePnLFreight} />}
             {activeTab === 'lc'         && <LCChecker />}
             {activeTab === 'risk'       && <RiskMatrix deals={deals} onRiskSaved={saveRiskMatrix} />}
-            {activeTab === 'fx-pricing' && <FxPricingValidator deals={deals} onPricingValidated={savePricingValidation} currentUser={currentUser} />}
+            {activeTab === 'fx-pricing'  && <FxPricingValidator deals={deals} onPricingValidated={savePricingValidation} currentUser={currentUser} />}
+            {activeTab === 'fx-forward'  && <FxForward deals={deals} />}
             {activeTab === 'spreads'    && <Spreads />}
             {activeTab === 'rolling'    && <Rolling deals={deals} />}
             {activeTab === 'platts-board' && <PlattsBoard plattsDataset={plattsDataset} setMarketPrice={setMarketPrice} deals={deals} onPushToDeal={pushMopToDeal} />}

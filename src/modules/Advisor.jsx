@@ -24,6 +24,7 @@ import { analyzeDeal }  from '../calc/optimizerCalc.js';
 import { computePnL }   from '../calc/pnlCalc.js';
 import { computeHedge } from '../calc/hedgeCalc.js';
 import { computeRoll }  from '../calc/rollCalc.js';
+import { computeSwapPoints, computeForwardFerme, computeOptionChange, computeHedgeScenarios } from '../calc/fxForwardCalc.js';
 import { PRODUCTS, CONTRACTS } from '../constants.js';
 import { Card, Button } from '../components/UI.jsx';
 
@@ -259,6 +260,38 @@ function makeToolExecutors(ctx) {
         summary,
         checks,
         disclaimer: "Vérification indicative reconstruite à partir des champs du deal. Elle ne remplace pas un contrôle UCP 600 complet sur le texte réel de la LC dans le module LCChecker.",
+      };
+    },
+
+    // ── calculerForwardFX ────────────────────────────────────────────────────
+    calculerForwardFX: ({
+      ccyFor, ccyDom, notionalForeign, spotRate, tenor,
+      rateForCurrency = 5.25, rateDomCurrency = 3.50,
+      bankSpreadPct = 0.30, flatCommission = 500,
+      marginPct = 10, opportunityRatePct = 5,
+      strikeRate, premiumPct = 2.0, premiumAbsolute, courtageFlat = 300,
+    }) => {
+      const swapCalc = computeSwapPoints({ spotRate, rateForCurrency, rateDomCurrency, tenor });
+      const forwardResult = computeForwardFerme({
+        notionalForeign, spotRate,
+        forwardRateMarket: swapCalc.forwardRateTheoretical,
+        bankSpreadPct, flatCommission, marginPct, opportunityRatePct, tenor,
+      });
+      const effectiveStrike = strikeRate ?? swapCalc.forwardRateTheoretical;
+      const optionResult = computeOptionChange({
+        notionalForeign, spotRate,
+        strikeRate: effectiveStrike,
+        premiumPct, premiumAbsolute, courtageFlat,
+      });
+      const scenarios = computeHedgeScenarios({
+        notionalForeign, spotRate,
+        strikeRate: effectiveStrike,
+        forwardResult, optionResult,
+      });
+      return {
+        ccyFor, ccyDom, notionalForeign, spotRate, tenor,
+        rateForCurrency, rateDomCurrency,
+        swapCalc, forwardResult, optionResult, scenarios,
       };
     },
 

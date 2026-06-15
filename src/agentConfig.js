@@ -25,7 +25,14 @@ Tu disposes d'outils pour consulter les données réelles d'AMKO (les deals, leu
 - Tu n'as, pour l'instant, aucun pouvoir de modification. Tu ne peux pas écrire ni changer un deal. Si l'utilisateur veut appliquer un changement, explique précisément quel champ modifier et quelle valeur, et indique-lui de le faire dans le module concerné d'AMKO. Présente toujours cela comme une proposition à valider par lui.
 
 ## Cartographie d'AMKO (ce que tu connais de la plateforme)
-La plateforme couvre : Dashboard, Marché (TradingView), Courbe à terme, NewDeal, DealsList, Lots (multi-cargaisons), Optimizer (11 contrôles), Hedging (contrats futures), Pricing (prix physique), Freight (Worldscale/Lumpsum + démurrage), PnL (marge brute/nette), Spreads (géo/temporels), Rolling (contango/backwardation), LCChecker (23 champs SWIFT UCP 600), RiskMatrix, PlattsImport/PlattsBoard (MOP), Documents (workflow 12 phases + générateurs ICPO/FCO/BCL/SPA/POP).
+La plateforme couvre : Dashboard, Marché (TradingView), Courbe à terme, NewDeal, DealsList, Lots (multi-cargaisons), Optimizer (11 contrôles), Hedging (contrats futures), Pricing (prix physique), Freight (Worldscale/Lumpsum + démurrage), PnL (marge brute/nette), Spreads (géo/temporels), Rolling (contango/backwardation), LCChecker (23 champs SWIFT UCP 600), RiskMatrix (moteur automatique), FxPricingValidator (arbitrage GO/NO-GO), Couverture FX (forward ferme + option sur devise avec frais bancaires complets), PlattsImport/PlattsBoard (MOP), Documents (workflow 12 phases + générateurs ICPO/FCO/BCL/SPA/POP).
+
+## Module Couverture FX — forward ferme & option sur devise
+Quand l'utilisateur pose des questions sur la couverture de change, les frais bancaires d'un forward, la prime d'une option devises ou la comparaison forward/option :
+- Utilise l'outil **calculerForwardFX** pour fournir un calcul chiffré complet.
+- Explique toujours : (1) les swap points (report/déport et leur cause : différentiel de taux d'intérêt), (2) le spread bancaire implicite, (3) le coût d'opportunité du dépôt de garantie, (4) la prime de l'option et son breakeven, (5) dans quel scénario de cours le forward est préférable et dans lequel l'option l'est.
+- Rappelle que pour les devises XOF/XAF, la parité EUR/XOF est fixe à 655,957 : le vrai risque FX est donc EUR/USD, ce qui se traduit en USD/XOF implicite.
+- Le module Couverture FX se trouve dans la section Outils de la navigation.
 Un deal AMKO a notamment ces champs : dealType (buy/sell), counterparty, counterpartyTier (first-class/solid/standard/risky), bankRating, product, quantity (MT), tolerance (%), incoterm, loadPort, dischPort, laycanFrom/To, blDate, priceSource (Platts/Argus/OPIS), priceMarker (brent/wti/gasoil…), differential ($/bbl), estimatedPrice, paymentTerm, hedgeRatio (%), status (open→contracted→financed→loaded→discharged→closed). Il peut contenir un sous-objet freight et un tableau lots[].
 Quand tu recommandes une action, relie-la au module AMKO pertinent (ex. « ajuste le hedgeRatio dans le module Hedging », « vérifie le champ 46A dans LCChecker »).
 
@@ -158,6 +165,83 @@ export const TOOLS = [
         },
       },
       required: ["dealId"],
+    },
+  },
+  {
+    name: "calculerForwardFX",
+    description:
+      "Calcule le coût complet d'une couverture FX : taux à terme ferme (swap points, spread bancaire, dépôt de garantie, coût d'opportunité) ET option sur devise (prime, courtage, breakeven). Génère aussi les scénarios de comparaison forward vs option pour plusieurs niveaux de cours à l'échéance. À utiliser dès que l'utilisateur parle d'achat forward, de prime FX, de frais bancaires de change, ou de protection de marge contre le risque de change.",
+    input_schema: {
+      type: "object",
+      properties: {
+        ccyFor: {
+          type: "string",
+          description: "Devise étrangère à acheter (ex. 'USD', 'EUR', 'GBP').",
+        },
+        ccyDom: {
+          type: "string",
+          description: "Devise domestique / de financement (ex. 'XOF', 'USD', 'EUR').",
+        },
+        notionalForeign: {
+          type: "number",
+          description: "Montant en devise étrangère à couvrir (ex. 500000).",
+        },
+        spotRate: {
+          type: "number",
+          description: "Cours spot actuel : 1 unité ccyFor = X ccyDom (ex. 607.50 pour USD/XOF).",
+        },
+        tenor: {
+          type: "number",
+          description: "Durée de la couverture en jours (ex. 90).",
+        },
+        rateForCurrency: {
+          type: "number",
+          description: "Taux d'intérêt annuel de la devise étrangère en % (ex. 5.25 pour USD).",
+        },
+        rateDomCurrency: {
+          type: "number",
+          description: "Taux d'intérêt annuel de la devise domestique en % (ex. 3.50).",
+        },
+        bankSpreadPct: {
+          type: "number",
+          description: "Spread bancaire en % du taux forward pour le forward ferme (ex. 0.30).",
+          default: 0.30,
+        },
+        flatCommission: {
+          type: "number",
+          description: "Commission fixe de mise en place du forward en devise domestique (ex. 500).",
+          default: 500,
+        },
+        marginPct: {
+          type: "number",
+          description: "Dépôt de garantie en % de la valeur notionnelle spot (ex. 10).",
+          default: 10,
+        },
+        opportunityRatePct: {
+          type: "number",
+          description: "Taux d'opportunité annuel sur le dépôt immobilisé en % (ex. 5).",
+          default: 5,
+        },
+        strikeRate: {
+          type: "number",
+          description: "Prix d'exercice de l'option. Si omis, utilise le taux forward théorique (ATM).",
+        },
+        premiumPct: {
+          type: "number",
+          description: "Prime d'option en % du notionnel spot (ex. 2.00). Ignoré si premiumAbsolute fourni.",
+          default: 2.0,
+        },
+        premiumAbsolute: {
+          type: "number",
+          description: "Prime d'option en montant absolu en devise domestique (si devis bancaire direct).",
+        },
+        courtageFlat: {
+          type: "number",
+          description: "Commission de courtage pour l'option en devise domestique (ex. 300).",
+          default: 300,
+        },
+      },
+      required: ["ccyFor", "ccyDom", "notionalForeign", "spotRate", "tenor"],
     },
   },
   {
