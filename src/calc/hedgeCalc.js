@@ -25,3 +25,28 @@ export function computeHedge({ productKey, quantity, hedgeRatio, contractKey }) 
 
   return { product, contract, qty, barrels, hedgedBarrels, lots, lotsRound, overHedge, basisRisk };
 }
+
+// P&L réalisé d'une couverture futures/swap :
+//   - jambe marché : (entrée − sortie) pour un SHORT, (sortie − entrée) pour un LONG
+//   - + roll cumulé (crédit/coût des rolls de position)
+// Prix exprimés dans l'unité du contrat (bbl ou MT). Volume = lots × taille.
+export function computeHedgePnL({ direction, entryPrice, exitPrice, lots, contractSize, rollTotal }) {
+  const entry = Number(entryPrice);
+  const exit  = Number(exitPrice);
+  const n     = Number(lots)         || 0;
+  const size  = Number(contractSize) || 0;
+  const roll  = Number(rollTotal)    || 0;
+
+  const hasEntry  = Number.isFinite(entry) && entry > 0;
+  const hasExit   = Number.isFinite(exit)  && exit  > 0;
+  const hasPrices = hasEntry && hasExit;
+
+  const volume  = n * size; // unités du contrat (bbl ou MT)
+  // SHORT : on a vendu les futures à l'entrée, on les rachète à la sortie → gain si la sortie est plus basse.
+  // LONG  : on a acheté les futures à l'entrée, on les revend à la sortie  → gain si la sortie est plus haute.
+  const perUnit   = !hasPrices ? 0 : (direction === 'short' ? (entry - exit) : (exit - entry));
+  const marketPnL = perUnit * volume;
+  const totalPnL  = marketPnL + roll;
+
+  return { hasEntry, hasExit, hasPrices, volume, perUnit, marketPnL, rollTotal: roll, totalPnL };
+}

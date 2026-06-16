@@ -1,10 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator, TrendingUp, AlertTriangle, Activity, Save, CheckCircle2 } from 'lucide-react';
+import { Calculator, TrendingUp, TrendingDown, AlertTriangle, Activity, Save, CheckCircle2, RefreshCw } from 'lucide-react';
 import { PRODUCTS, CONTRACTS } from '../constants.js';
-import { fmt } from '../utils.js';
+import { fmt, fmtUSD } from '../utils.js';
 import { Card, CardHeader, CardBody, Field, Input, Select, Button } from '../components/UI.jsx';
 import { TVAdvancedChart } from '../components/TradingViewWidgets.jsx';
-import { computeHedge } from '../calc/hedgeCalc.js';
+import { computeHedge, computeHedgePnL } from '../calc/hedgeCalc.js';
+
+const ROLL_HISTORY_KEY = 'amko_roll_history';
+
+// Somme du roll cumulé (crédit +/coût −) des rolls enregistrés pour un deal donné.
+function rollTotalForDeal(dealId) {
+  if (!dealId) return 0;
+  try {
+    const hist = JSON.parse(localStorage.getItem(ROLL_HISTORY_KEY) || '[]');
+    return hist
+      .filter(e => e.linkedDeal === dealId)
+      .reduce((s, e) => s + (Number(e.totalRoll) || 0), 0);
+  } catch { return 0; }
+}
 
 export default function Hedging({ deals, onHedgeSaved }) {
   const [productKey,  setProductKey]  = useState('crude-bonny');
@@ -14,6 +27,8 @@ export default function Hedging({ deals, onHedgeSaved }) {
   const [linkedDeal,  setLinkedDeal]  = useState('');
   const [hedgeRatio,  setHedgeRatio]  = useState(100);
   const [entryPrice,  setEntryPrice]  = useState('');
+  const [exitPrice,   setExitPrice]   = useState('');
+  const [rollTotal,   setRollTotal]   = useState('0');
   const [maturity,    setMaturity]    = useState('');
   const [bankBroker,  setBankBroker]  = useState('');
   const [notes,       setNotes]       = useState('');
@@ -38,16 +53,25 @@ export default function Hedging({ deals, onHedgeSaved }) {
         if (d.hedging) {
           setContractKey(d.hedging.contractKey || contractKey);
           setEntryPrice(d.hedging.entryPrice || '');
+          setExitPrice(d.hedging.exitPrice || '');
           setMaturity(d.hedging.maturity || '');
           setBankBroker(d.hedging.bankBroker || '');
           setNotes(d.hedging.notes || '');
         }
+        // Roll cumulé auto-importé depuis l'historique des rolls de ce deal
+        const rt = rollTotalForDeal(d.id);
+        if (rt) setRollTotal(String(Math.round(rt)));
       }
     }
   }, [linkedDeal, deals]);
 
   const { product, contract, qty, barrels, hedgedBarrels, lots, lotsRound, overHedge, basisRisk } =
     computeHedge({ productKey, quantity, hedgeRatio, contractKey });
+
+  const hedgePnL = computeHedgePnL({
+    direction, entryPrice, exitPrice,
+    lots: lotsRound, contractSize: contract.size, rollTotal,
+  });
 
   const saveHedge = () => {
     if (!linkedDeal) {
@@ -82,6 +106,11 @@ export default function Hedging({ deals, onHedgeSaved }) {
       effectiveHedgedBarrels: lotsRound * contract.size * (contract.unit === 'bbl' ? 1 : product.bblPerMT),
       basisRisk,
       entryPrice: entryPrice ? Number(entryPrice) : null,
+      exitPrice:  exitPrice  ? Number(exitPrice)  : null,
+      rollTotal:  Number(rollTotal) || 0,
+      pnlPerUnit: hedgePnL.perUnit,
+      marketPnL:  hedgePnL.marketPnL,
+      pnlResult:  hedgePnL.totalPnL, // repris automatiquement dans le module P&L
       maturity,
       bankBroker,
       notes,
@@ -174,7 +203,11 @@ export default function Hedging({ deals, onHedgeSaved }) {
                 </Select>
               </Field>
               <div className="grid md:grid-cols-3 gap-3">
-                <Field label="Prix/taux d’entrée"><Input type="number" step="0.01" value={entryPrice} onChange={e => setEntryPrice(e.target.value)} placeholder="ex. 1149.25" /></Field>
+                <Field label={`Prix/taux d’entrée ($/${contract.unit})`}><Input type="number" step="0.01" value={entryPrice} onChange={e => setEntryPrice(e.target.value)} placeholder="ex. 1149.25" /></Field>
+                <Field label={`Prix/taux de sortie ($/${contract.unit})`}><Input type="number" step="0.01" value={exitPrice} onChange={e => setExitPrice(e.target.value)} placeholder="ex. 1003.42" /></Field>
+                <Field label="Roll cumulé ($)" hint="Crédit (+) / coût (−) — auto depuis l'historique des rolls"><Input type="number" value={rollTotal} onChange={e => setRollTotal(e.target.value)} /></Field>
+              </div>
+              <div className="grid md:grid-cols-2 gap-3">
                 <Field label="Maturité"><Input type="date" value={maturity} onChange={e => setMaturity(e.target.value)} /></Field>
                 <Field label="Banque / broker"><Input value={bankBroker} onChange={e => setBankBroker(e.target.value)} placeholder="ex. Banque / ICE broker" /></Field>
               </div>
@@ -254,6 +287,43 @@ export default function Hedging({ deals, onHedgeSaved }) {
                   <div className="text-xs text-amber-700 dark:text-amber-400 mt-1">
                     {overHedge > 0 ? '⚠ Sur-couverture' : '⚠ Sous-couverture'} de {fmt(Math.abs(overHedge), 2)} lot(s).
                   </div>
+                )}
+              </div>
+
+              {/* ── P&L de la couverture ──────────────────────────── */}
+              <div className={`px-4 py-3 rounded-md border-2 ${
+                !hedgePnL.hasPrices
+                  ? 'bg-slate-50 dark:bg-slate-800/60 border-slate-300 dark:border-slate-600'
+                  : hedgePnL.totalPnL >= 0
+                    ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-600'
+                    : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-600'
+              }`}>
+                <div className="flex items-center gap-2 text-xs uppercase font-bold text-slate-600 dark:text-slate-400">
+                  {hedgePnL.totalPnL >= 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                  P&amp;L de la couverture
+                </div>
+                {!hedgePnL.hasPrices ? (
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Renseignez les prix d'entrée et de sortie pour calculer le résultat du hedge.
+                  </p>
+                ) : (
+                  <>
+                    <div className={`text-3xl font-bold mt-1 ${hedgePnL.totalPnL >= 0 ? 'text-emerald-900 dark:text-emerald-200' : 'text-red-900 dark:text-red-300'}`}>
+                      {hedgePnL.totalPnL >= 0 ? '+' : ''}{fmtUSD(hedgePnL.totalPnL, 0)}
+                    </div>
+                    <div className="mt-2 space-y-0.5 text-xs text-slate-600 dark:text-slate-400">
+                      <div>
+                        Jambe marché : {direction === 'short'
+                          ? `${fmtUSD(Number(entryPrice), 2)} − ${fmtUSD(Number(exitPrice), 2)}`
+                          : `${fmtUSD(Number(exitPrice), 2)} − ${fmtUSD(Number(entryPrice), 2)}`}
+                        {' '}= {hedgePnL.perUnit >= 0 ? '+' : ''}{fmt(hedgePnL.perUnit, 2)} $/{contract.unit}
+                        {' '}× {fmt(hedgePnL.volume, 0)} {contract.unit} = {hedgePnL.marketPnL >= 0 ? '+' : ''}{fmtUSD(hedgePnL.marketPnL, 0)}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <RefreshCw className="w-3 h-3" /> Roll cumulé : {hedgePnL.rollTotal >= 0 ? '+' : ''}{fmtUSD(hedgePnL.rollTotal, 0)}
+                      </div>
+                    </div>
+                  </>
                 )}
               </div>
             </div>
