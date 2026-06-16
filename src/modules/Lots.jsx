@@ -22,7 +22,9 @@ function blankLot(index, deal) {
     port: deal?.dischargePort || 'Cotonou (Bénin)',
     pricingWindow: '5 Around B/L',
     pricingDates: '',
-    plattsPrice: Number(deal?.estimatedPrice) || 0,
+    // Platts moyen = MOP brut, sans la prime. estimatedPrice contient déjà
+    // la prime → on la retranche pour ne pas la compter deux fois.
+    plattsPrice: Math.max(0, (Number(deal?.estimatedPrice) || 0) - (Number(deal?.differential) || 0)),
     differential: Number(deal?.differential) || 0,
     finalPrice: 0,
     status: 'pending',     // pending | priced | loaded | discharged
@@ -133,7 +135,7 @@ export default function Lots({ deals, onLotsUpdated }) {
               accent={Math.abs(totalQty - dealQty) < 50 ? 'green' : 'gold'} />
             <Stat label="Lots pricés"  value={`${pricedLots.length}/${lots.length}`} accent="green" />
             <Stat label="Prix moyen pondéré"
-              value={weightedAvgPrice ? fmtUSD(weightedAvgPrice, 2) + '/bbl' : '—'}
+              value={weightedAvgPrice ? fmtUSD(weightedAvgPrice, 2) + '/MT' : '—'}
               accent="slate" />
           </div>
 
@@ -168,7 +170,7 @@ export default function Lots({ deals, onLotsUpdated }) {
               {lots.map((lot, idx) => {
                 const isOpen = editing === lot.id;
                 const finalP = (Number(lot.plattsPrice) || 0) + (Number(lot.differential) || 0);
-                const lotValue = finalP * (Number(lot.qty) || 0) * (PRODUCTS[deal.product]?.bblPerMT || 7.5);
+                const lotValue = finalP * (Number(lot.qty) || 0); // $/MT × MT
                 const st = STATUS_LABELS[lot.status] || STATUS_LABELS.pending;
 
                 return (
@@ -192,7 +194,7 @@ export default function Lots({ deals, onLotsUpdated }) {
                         {lot.status === 'priced' || lot.status === 'discharged' ? (
                           <div className="text-right">
                             <div className="text-sm font-bold text-emerald-700 dark:text-emerald-400">
-                              {fmtUSD(finalP, 2)}/bbl
+                              {fmtUSD(finalP, 2)}/MT
                             </div>
                             <div className="text-xs text-slate-500 dark:text-slate-400">
                               Platts {fmtUSD(lot.plattsPrice, 2)} + {fmt(lot.differential, 2)}
@@ -253,19 +255,19 @@ export default function Lots({ deals, onLotsUpdated }) {
                             Pricing Platts
                           </p>
                           <div className="grid md:grid-cols-4 gap-3">
-                            <Field label="Platts moyen ($/bbl)" hint="MOP de la fenêtre">
+                            <Field label="Platts moyen ($/MT)" hint="MOP brut (sans prime)">
                               <Input type="number" step="0.001" value={lot.plattsPrice}
                                 onChange={e => updateLot(lot.id, 'plattsPrice', e.target.value)}
-                                placeholder="Ex. 82.500" />
+                                placeholder="Ex. 1181.750" />
                             </Field>
-                            <Field label="Différentiel ($/bbl)" hint="Prime (+) ou décote (−)">
+                            <Field label="Différentiel ($/MT)" hint="Prime (+) ou décote (−)">
                               <Input type="number" step="0.01" value={lot.differential}
                                 onChange={e => updateLot(lot.id, 'differential', e.target.value)}
-                                placeholder="Ex. +1.20" />
+                                placeholder="Ex. +65.62" />
                             </Field>
                             <Field label="Prix final calculé">
                               <div className="px-3 py-2 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-300 dark:border-emerald-700 rounded-md text-sm font-bold text-emerald-900 dark:text-emerald-200">
-                                {fmtUSD(finalP, 3)} /bbl
+                                {fmtUSD(finalP, 3)} /MT
                               </div>
                             </Field>
                             <Field label="Valeur du lot">
@@ -311,7 +313,7 @@ export default function Lots({ deals, onLotsUpdated }) {
                     <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700 text-xs uppercase text-slate-600 dark:text-slate-400">
                       <th className="text-left py-2 px-4">Lot</th>
                       <th className="text-right py-2 px-4">Qté (MT)</th>
-                      <th className="text-right py-2 px-4">Platts $/bbl</th>
+                      <th className="text-right py-2 px-4">Platts $/MT</th>
                       <th className="text-right py-2 px-4">Diff.</th>
                       <th className="text-right py-2 px-4">Prix final</th>
                       <th className="text-right py-2 px-4">Valeur ($)</th>
@@ -321,7 +323,7 @@ export default function Lots({ deals, onLotsUpdated }) {
                   <tbody>
                     {pricedLots.map(l => {
                       const fp = (Number(l.plattsPrice) || 0) + (Number(l.differential) || 0);
-                      const val = fp * (Number(l.qty) || 0) * (PRODUCTS[deal.product]?.bblPerMT || 7.5);
+                      const val = fp * (Number(l.qty) || 0); // $/MT × MT
                       return (
                         <tr key={l.id} className="border-b border-slate-100 dark:border-slate-700">
                           <td className="py-2 px-4 font-medium text-slate-800 dark:text-slate-200">{l.name}</td>
@@ -352,7 +354,7 @@ export default function Lots({ deals, onLotsUpdated }) {
                       <td className="py-2 px-4 text-right text-blue-700 dark:text-blue-400">
                         {fmtUSD(pricedLots.reduce((s, l) => {
                           const fp = (Number(l.plattsPrice) || 0) + (Number(l.differential) || 0);
-                          return s + fp * (Number(l.qty) || 0) * (PRODUCTS[deal.product]?.bblPerMT || 7.5);
+                          return s + fp * (Number(l.qty) || 0); // $/MT × MT
                         }, 0), 0)}
                       </td>
                       <td className="py-2 px-4"></td>
