@@ -38,7 +38,7 @@ import Documents     from './modules/Documents.jsx';
 import Lots             from './modules/Lots.jsx';
 import Advisor          from './modules/Advisor.jsx';
 import DealManagerLocal    from './modules/DealManagerLocal.jsx';
-import GoNoGo              from './modules/GoNoGo.jsx';
+import FxPricingValidator  from './modules/FxPricingValidator.jsx';
 import FxForward           from './modules/FxForward.jsx';
 import ICEBoard            from './modules/ICEBoard.jsx';
 
@@ -290,7 +290,7 @@ export default function TradingPlatform() {
     { id: 'pnl',       label: 'P&L',              icon: BarChart3,       section: 'tools' },
     { id: 'lc',        label: 'LC Checker',        icon: FileCheck2,      section: 'tools' },
     { id: 'risk',          label: 'Risques',           icon: ShieldAlert,  section: 'tools' },
-    { id: 'fx-pricing',   label: 'GO / NO-GO',        icon: ShieldCheck,  section: 'tools' },
+    { id: 'fx-pricing',   label: 'FX Pricing',        icon: ShieldCheck,  section: 'tools' },
     { id: 'fx-forward',  label: 'Couverture FX',     icon: Landmark,     section: 'tools' },
     { id: 'spreads',  label: 'Spreads',           icon: TrendingUp,      section: 'tools' },
     { id: 'rolling',  label: 'Rolling',           icon: RefreshCw,       section: 'tools' },
@@ -417,7 +417,7 @@ export default function TradingPlatform() {
             {activeTab === 'pnl'        && <PnL deals={deals} marketPrices={marketPrices} onFreightSaved={savePnLFreight} onPnLSaved={savePnL} />}
             {activeTab === 'lc'         && <LCChecker />}
             {activeTab === 'risk'       && <RiskMatrix deals={deals} onRiskSaved={saveRiskMatrix} />}
-            {activeTab === 'fx-pricing'  && <GoNoGo deals={deals} onPricingValidated={savePricingValidation} currentUser={currentUser} />}
+            {activeTab === 'fx-pricing'  && <FxPricingValidator deals={deals} onPricingValidated={savePricingValidation} currentUser={currentUser} />}
             {activeTab === 'fx-forward'  && <FxForward deals={deals} onFxSaved={saveFxHedge} />}
             {activeTab === 'spreads'    && <Spreads />}
             {activeTab === 'rolling'    && <Rolling deals={deals} />}
