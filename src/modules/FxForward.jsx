@@ -1,10 +1,10 @@
 // FxForward.jsx — Calculateur de couverture FX : forward ferme & option sur devise.
 // Commissions et frais bancaires inclus. Aucun appel API — calculs 100 % locaux.
 
-import React, { useState, useMemo } from 'react';
-import { Landmark, Calculator, TrendingUp, TrendingDown, Info, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Landmark, Calculator, TrendingUp, TrendingDown, Info, AlertTriangle, CheckCircle2, Save } from 'lucide-react';
 import { fmt, fmtUSD } from '../utils.js';
-import { Card, CardHeader, CardBody, Field, Input, Select, Row, Stat } from '../components/UI.jsx';
+import { Card, CardHeader, CardBody, Field, Input, Select, Row, Stat, Button } from '../components/UI.jsx';
 import {
   computeSwapPoints,
   computeForwardFerme,
@@ -62,7 +62,12 @@ function ScenarioRow({ s, ccy, ccyDom }) {
 }
 
 // ─── Composant principal ──────────────────────────────────────────────────────
-export default function FxForward({ deals = [] }) {
+export default function FxForward({ deals = [], onFxSaved }) {
+  // ── Liaison deal & sauvegarde ─────────────────────────────────────────────
+  const [linkedDeal,   setLinkedDeal]   = useState('');
+  const [fxInstrument, setFxInstrument] = useState('Forward ferme');
+  const [savedMsg,     setSavedMsg]     = useState('');
+
   // ── Paramètres communs ────────────────────────────────────────────────────
   const [ccyFor,       setCcyFor]       = useState('USD');
   const [ccyDom,       setCcyDom]       = useState('XOF');
@@ -129,6 +134,58 @@ export default function FxForward({ deals = [] }) {
 
   const hasData = n(spotRate) > 0 && n(notional) > 0 && tenor > 0;
 
+  // ── Résultat FX retenu pour le P&L (coût de la couverture = perte) ─────────
+  const fxResultForPnL = fxInstrument === 'Option sur devise'
+    ? -Math.round(optionResult.totalUpfrontCost || 0)
+    : -Math.round(forwardResult.totalCost || 0);
+
+  // ── Restaurer la couverture FX sauvegardée du deal ────────────────────────
+  useEffect(() => {
+    if (!linkedDeal) return;
+    const d = deals.find(x => x.id === linkedDeal);
+    if (!d) return;
+    setSavedMsg('');
+    const fx = d.fxHedge;
+    if (fx) {
+      setFxInstrument(fx.instrument || 'Forward ferme');
+      if (fx.ccyFor)    setCcyFor(fx.ccyFor);
+      if (fx.ccyDom)    setCcyDom(fx.ccyDom);
+      if (fx.notional != null)  setNotional(String(fx.notional));
+      if (fx.dateOp)    setDateOp(fx.dateOp);
+      if (fx.dateEch)   setDateEch(fx.dateEch);
+      if (fx.spotRate != null)  setSpotRate(String(fx.spotRate));
+      if (fx.rateFor != null)   setRateFor(String(fx.rateFor));
+      if (fx.rateDom != null)   setRateDom(String(fx.rateDom));
+      if (fx.strikeRate != null) setStrikeRate(String(fx.strikeRate));
+    } else if (d.estimatedPrice && d.quantity && !notional) {
+      // Pré-remplir le notionnel USD depuis le deal si rien n'est saisi
+      setNotional(String(Math.round(Number(d.estimatedPrice) * Number(d.quantity))));
+    }
+  }, [linkedDeal, deals]);
+
+  const saveFx = () => {
+    if (!linkedDeal) { alert('Sélectionnez d’abord le deal à couvrir.'); return; }
+    if (!onFxSaved)  { alert('La sauvegarde FX n’est pas raccordée à la plateforme.'); return; }
+    onFxSaved(linkedDeal, {
+      validated: true,
+      validatedAt: new Date().toISOString(),
+      instrument: fxInstrument,
+      ccyFor, ccyDom,
+      notional: n(notional),
+      dateOp, dateEch, tenor,
+      spotRate: n(spotRate),
+      rateFor: n(rateFor),
+      rateDom: n(rateDom),
+      forwardRate: forwardResult.clientForwardRate,
+      forwardCost: Math.round(forwardResult.totalCost || 0),
+      strikeRate: n(strikeRate) || swapCalc.forwardRateTheoretical,
+      optionCost: Math.round(optionResult.totalUpfrontCost || 0),
+      fxResult: fxResultForPnL, // repris automatiquement dans le P&L (niveau 3)
+    });
+    setSavedMsg(`Couverture FX (${fxInstrument}) enregistrée dans le deal ${linkedDeal}.`);
+    setTimeout(() => setSavedMsg(''), 5000);
+  };
+
   return (
     <div className="space-y-6">
       {/* ── Titre ── */}
@@ -141,6 +198,55 @@ export default function FxForward({ deals = [] }) {
           taux à terme ferme ou option sur devise.
         </p>
       </div>
+
+      {savedMsg && (
+        <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 dark:bg-emerald-950/30 dark:border-emerald-800 p-3 text-sm text-emerald-800 dark:text-emerald-200">
+          <CheckCircle2 className="w-4 h-4" /> {savedMsg}
+        </div>
+      )}
+
+      {/* ── Liaison deal & enregistrement ── */}
+      <Card>
+        <CardHeader icon={Landmark} title="Couverture FX du deal"
+          subtitle={linkedDeal && deals.find(d => d.id === linkedDeal)?.fxHedge
+            ? 'Couverture FX déjà enregistrée — modifiable'
+            : 'Liez un deal pour enregistrer la couverture FX'} />
+        <CardBody>
+          <div className="grid md:grid-cols-3 gap-4 items-end">
+            <Field label="Deal lié à couvrir">
+              <Select value={linkedDeal} onChange={e => setLinkedDeal(e.target.value)}>
+                <option value="">— Calcul libre —</option>
+                {deals.map(d => (
+                  <option key={d.id} value={d.id}>
+                    {d.id} — {d.counterparty || d.product}{d.fxHedge ? ' ✓' : ''}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Instrument retenu pour le P&L">
+              <Select value={fxInstrument} onChange={e => setFxInstrument(e.target.value)}>
+                <option>Forward ferme</option>
+                <option>Option sur devise</option>
+              </Select>
+            </Field>
+            <div className="flex items-center gap-3">
+              <Button variant="primary" icon={Save} onClick={saveFx} disabled={!linkedDeal || !hasData}>
+                Enregistrer la couverture FX
+              </Button>
+            </div>
+          </div>
+          {linkedDeal && (
+            <div className="mt-3 text-xs text-slate-600 dark:text-slate-400">
+              Résultat FX retenu pour le P&L :{' '}
+              <b className={fxResultForPnL >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-red-700 dark:text-red-400'}>
+                {fxResultForPnL >= 0 ? '+' : ''}{fmtUSD(fxResultForPnL, 0)}
+              </b>{' '}
+              (coût de la couverture {fxInstrument === 'Option sur devise' ? 'par option' : 'forward'})
+              {!hasData && <span className="text-amber-600 dark:text-amber-400"> — complétez montant, spot et dates pour activer l'enregistrement.</span>}
+            </div>
+          )}
+        </CardBody>
+      </Card>
 
       {/* ── Section 1 : Paramètres communs ── */}
       <Card>

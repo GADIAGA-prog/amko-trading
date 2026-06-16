@@ -254,6 +254,7 @@ export default function TradingPlatform() {
   const saveRiskMatrix      = (dealId, riskData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, riskMatrix: riskData } : d));
   const savePnLFreight      = (dealId, freightAmount) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: { ...(d.freight || {}), totalFreight: freightAmount } } : d));
   const savePnL             = (dealId, pnlData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pnl: pnlData } : d));
+  const saveFxHedge         = (dealId, fxData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, fxHedge: fxData } : d));
   const savePricingValidation = (dealId, pvData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pricingValidation: pvData } : d));
   const savePricing         = (dealId, pricingData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pricing: pricingData, estimatedPrice: String(pricingData.finalPrice) } : d));
   const pushMopToDeal       = (dealId, plattsCode, priceBbl) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, estimatedPrice: String(Math.round(priceBbl * 1000) / 1000), plattsCode } : d));
@@ -417,7 +418,7 @@ export default function TradingPlatform() {
             {activeTab === 'lc'         && <LCChecker />}
             {activeTab === 'risk'       && <RiskMatrix deals={deals} onRiskSaved={saveRiskMatrix} />}
             {activeTab === 'fx-pricing'  && <FxPricingValidator deals={deals} onPricingValidated={savePricingValidation} currentUser={currentUser} />}
-            {activeTab === 'fx-forward'  && <FxForward deals={deals} />}
+            {activeTab === 'fx-forward'  && <FxForward deals={deals} onFxSaved={saveFxHedge} />}
             {activeTab === 'spreads'    && <Spreads />}
             {activeTab === 'rolling'    && <Rolling deals={deals} />}
             {activeTab === 'platts-board' && <PlattsBoard plattsDataset={plattsDataset} setMarketPrice={setMarketPrice} deals={deals} onPushToDeal={pushMopToDeal} />}

@@ -36,20 +36,44 @@ export default function PnL({ deals, marketPrices, onFreightSaved, onPnLSaved })
     const d = deals.find(x => x.id === selectedDealId);
     if (!d) return;
     setQuantity(String(d.quantity || ''));
+
+    // 1) Si un P&L a déjà été validé pour ce deal → restaurer toutes ses hypothèses
+    if (d.pnl) {
+      const p = d.pnl;
+      setBuyPrice(String(p.buyPrice ?? ''));
+      setSellPrice(String(p.sellPrice ?? ''));
+      setFreight(String(p.freight ?? ''));
+      setInspection(String(p.inspection ?? '0'));
+      setInsurance(String(p.insurance ?? '0'));
+      setDemurrage(String(p.demurrage ?? '0'));
+      setOther(String(p.other ?? '0'));
+      setFinancingInstrument(p.financingInstrument ?? 'Lettre de crédit (LC)');
+      setFinancing(String(p.financing ?? '0'));
+      setHedgingResult(String(p.hedgingResult ?? '0'));
+      setFxResult(String(p.fxResult ?? '0'));
+      setFreightSource('manual');
+      return;
+    }
+
+    // 2) Sinon, pré-remplir depuis les autres modules du deal
     if (d.estimatedPrice != null && d.estimatedPrice !== '') {
       if (d.dealType === 'buy') setBuyPrice(String(d.estimatedPrice));
       else setSellPrice(String(d.estimatedPrice));
     }
-    // Auto-importer le fret sauvegardé dans le deal
+    // Fret sauvegardé
     if (d.freight?.totalFreight) {
       setFreight(String(Math.round(d.freight.totalFreight)));
       setFreightSource('deal');
     } else {
       setFreightSource('manual');
     }
-    // Auto-importer le résultat hedging si disponible dans le deal
+    // Résultat hedging (module Hedging)
     if (d.hedging?.pnlResult != null) {
       setHedgingResult(String(Math.round(d.hedging.pnlResult)));
+    }
+    // Résultat couverture FX (module Couverture FX)
+    if (d.fxHedge?.fxResult != null) {
+      setFxResult(String(Math.round(d.fxHedge.fxResult)));
     }
   }, [selectedDealId, deals]);
 
