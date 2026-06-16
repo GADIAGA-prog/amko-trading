@@ -256,8 +256,18 @@ export default function TradingPlatform() {
   const savePnL             = (dealId, pnlData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pnl: pnlData } : d));
   const saveFxHedge         = (dealId, fxData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, fxHedge: fxData } : d));
   const savePricingValidation = (dealId, pvData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pricingValidation: pvData } : d));
-  const savePricing         = (dealId, pricingData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pricing: pricingData, estimatedPrice: String(pricingData.finalPrice) } : d));
-  const pushMopToDeal       = (dealId, plattsCode, priceBbl) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, estimatedPrice: String(Math.round(priceBbl * 1000) / 1000), plattsCode } : d));
+  const savePricing         = (dealId, pricingData) => setDeals(ds => ds.map(d => {
+    if (d.id !== dealId) return d;
+    const fp = String(pricingData.finalPrice);
+    const leg = d.dealType === 'sell' ? { salePrice: fp } : { purchasePrice: fp };
+    return { ...d, pricing: pricingData, estimatedPrice: fp, ...leg };
+  }));
+  const pushMopToDeal       = (dealId, plattsCode, priceBbl) => setDeals(ds => ds.map(d => {
+    if (d.id !== dealId) return d;
+    const p = String(Math.round(priceBbl * 1000) / 1000);
+    const leg = d.dealType === 'sell' ? { salePrice: p } : { purchasePrice: p };
+    return { ...d, estimatedPrice: p, plattsCode, ...leg };
+  }));
 
   // ── Gardes ───────────────────────────────────────────────────
   if (!authChecked) {

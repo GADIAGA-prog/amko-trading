@@ -138,13 +138,16 @@ function makeToolExecutors(ctx) {
       const demur    = deal.freight
         ? ((deal.freight.demHours || 0) * (deal.freight.demRate || 0))
         : 0;
+      // Le deal porte désormais un prix achat et un prix vente distincts.
+      const buyPrice  = deal.purchasePrice ?? (deal.dealType === 'buy'  ? deal.estimatedPrice : null);
+      const sellPrice = deal.salePrice     ?? (deal.dealType === 'sell' ? deal.estimatedPrice : null);
       const missing  = [];
-      if (deal.estimatedPrice == null) missing.push('estimatedPrice');
+      if (buyPrice == null && sellPrice == null) missing.push('purchasePrice/salePrice');
       if (!deal.quantity) missing.push('quantity');
 
       const result = computePnL({
-        buyPrice:   deal.dealType === 'buy'  ? deal.estimatedPrice : null,
-        sellPrice:  deal.dealType === 'sell' ? deal.estimatedPrice : null,
+        buyPrice,
+        sellPrice,
         quantity:   deal.quantity,
         bblPerMT,
         freight,

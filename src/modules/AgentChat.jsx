@@ -232,6 +232,8 @@ function makeExecutor(deals, marketPrices, plattsDataset) {
           product: d.product, productName: PRODUCTS[d.product]?.name,
           quantity_MT: d.quantity, status: d.status, createdAt: d.createdAt,
           estimatedPrice: d.estimatedPrice || null,
+          purchasePrice: d.purchasePrice || null,
+          salePrice: d.salePrice || null,
           hasFreight: !!d.freight,
           lotsCount: d.lots?.length || 0,
         }));
@@ -286,11 +288,22 @@ function makeExecutor(deals, marketPrices, plattsDataset) {
         const price    = (Number(d.estimatedPrice) || 0) + (Number(d.differential) || 0);
         const notional = totalBbl * price;
         const freight  = d.freight;
+        const buyMT    = Number(d.purchasePrice) || 0;
+        const sellMT   = Number(d.salePrice) || 0;
+        const freightUSD = Number(freight?.totalFreight) || 0;
+        const grossMarginPerMT = buyMT && sellMT ? sellMT - buyMT : null;
+        const netMarginUSD = buyMT && sellMT
+          ? (sellMT - buyMT) * Number(d.quantity || 0) - freightUSD
+          : null;
         return {
           dealId: d.id, dealType: d.dealType,
           product: product?.name, quantity_MT: d.quantity,
           totalBbl: Math.round(totalBbl),
           estimatedPrice: d.estimatedPrice || 'Non renseigné',
+          purchasePrice_MT: buyMT || 'Non renseigné',
+          salePrice_MT: sellMT || 'Non renseigné',
+          grossMarginPerMT_USD: grossMarginPerMT != null ? grossMarginPerMT.toFixed(2) : 'Requiert prix achat ET vente',
+          netMarginAfterFreight_USD: netMarginUSD != null ? Math.round(netMarginUSD) : 'Requiert prix achat ET vente',
           differential: d.differential || 0,
           effectivePrice_bbl: price || 'Non calculable',
           notionalUSD: price ? Math.round(notional) : 'Non calculable',
@@ -300,7 +313,9 @@ function makeExecutor(deals, marketPrices, plattsDataset) {
           lots: d.lots?.length
             ? { count: d.lots.length, priced: d.lots.filter(l => l.status !== 'pending').length }
             : 'Aucun lot défini.',
-          note: 'P&L complet (marge nette buy vs sell) requiert les deux prix. Saisissez-les dans le module PnL.',
+          note: (buyMT && sellMT)
+            ? 'Marge brute = prix vente − prix achat. Marge nette = marge brute × quantité − fret. Coûts financing/inspection/assurance non inclus ici (module PnL pour la marge nette complète).'
+            : 'Renseignez le prix achat ET le prix vente du deal pour obtenir la marge. Coûts détaillés dans le module PnL.',
         };
       }
 

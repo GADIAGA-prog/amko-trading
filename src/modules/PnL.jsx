@@ -56,10 +56,11 @@ export default function PnL({ deals, marketPrices, onFreightSaved, onPnLSaved })
     }
 
     // 2) Sinon, pré-remplir depuis les autres modules du deal
-    if (d.estimatedPrice != null && d.estimatedPrice !== '') {
-      if (d.dealType === 'buy') setBuyPrice(String(d.estimatedPrice));
-      else setSellPrice(String(d.estimatedPrice));
-    }
+    //    Prix achat et prix vente sont désormais portés par le deal.
+    const dealBuy  = d.purchasePrice ?? (d.dealType === 'buy'  ? d.estimatedPrice : '');
+    const dealSell = d.salePrice     ?? (d.dealType === 'sell' ? d.estimatedPrice : '');
+    if (dealBuy  != null && dealBuy  !== '') setBuyPrice(String(dealBuy));
+    if (dealSell != null && dealSell !== '') setSellPrice(String(dealSell));
     // Fret sauvegardé
     if (d.freight?.totalFreight) {
       setFreight(String(Math.round(d.freight.totalFreight)));

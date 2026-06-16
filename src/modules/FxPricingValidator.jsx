@@ -121,7 +121,10 @@ export default function FxPricingValidator({ deals = [], onPricingValidated, cur
         otherCosts:        String(ec.otherCosts        || ''),
       });
     } else {
-      if (d.estimatedPrice) setPurchasePrice(String(d.estimatedPrice));
+      const dealBuy  = d.purchasePrice ?? (d.dealType === 'buy'  ? d.estimatedPrice : '');
+      const dealSell = d.salePrice     ?? (d.dealType === 'sell' ? d.estimatedPrice : '');
+      if (dealBuy)  setPurchasePrice(String(dealBuy));
+      if (dealSell) setSalePrice(String(dealSell));
       if (d.freight?.totalFreight) setCostField('freightCost', String(Math.round(d.freight.totalFreight)));
       if (d.pricing) {
         setAvgPrice(String(d.pricing.markerPrice || ''));

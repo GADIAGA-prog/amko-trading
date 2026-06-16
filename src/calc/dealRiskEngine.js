@@ -57,8 +57,10 @@ export function inferDealStructure(deal = {}) {
 export function buildHedgeRecommendations(deal = {}, context = {}) {
   const s = inferDealStructure(deal);
   const qty = n(deal.quantity || deal.quantityMT);
-  const purchasePrice = n(deal.estimatedPrice || deal.purchasePrice || deal.finalPurchasePrice);
-  const salePrice = n(deal.salePrice || deal.finalSalePrice || deal.clientPrice);
+  const legBuy  = deal.dealType === 'buy'  ? deal.estimatedPrice : null;
+  const legSell = deal.dealType === 'sell' ? deal.estimatedPrice : null;
+  const purchasePrice = n(deal.purchasePrice || deal.finalPurchasePrice || legBuy);
+  const salePrice = n(deal.salePrice || deal.finalSalePrice || deal.clientPrice || legSell);
   const fx = normalizeFxRates(context.fx || deal.pricingValidation?.fx || {});
   const product = productExposure(deal);
   const hedges = [];

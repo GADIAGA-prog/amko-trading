@@ -129,6 +129,7 @@ export default function DealsList({ deals, onEdit, onDelete, onDuplicate, onImpo
                     <th className="py-3 px-4">Contrepartie</th>
                     <th className="py-3 px-4">Produit</th>
                     <th className="py-3 px-4">Qté (MT)</th>
+                    <th className="py-3 px-4">Prix A/V ($/MT)</th>
                     <th className="py-3 px-4">Incoterm</th>
                     <th className="py-3 px-4">Laycan</th>
                     <th className="py-3 px-4">Statut</th>
@@ -148,6 +149,21 @@ export default function DealsList({ deals, onEdit, onDelete, onDuplicate, onImpo
                       <td className="py-2 px-4 text-slate-800 dark:text-slate-200">{d.counterparty}</td>
                       <td className="py-2 px-4 text-slate-800 dark:text-slate-200">{PRODUCTS[d.product]?.name || d.product}</td>
                       <td className="py-2 px-4 text-slate-800 dark:text-slate-200">{fmt(d.quantity, 0)}</td>
+                      <td className="py-2 px-4 text-xs">
+                        {(() => {
+                          const buy  = d.purchasePrice ?? (d.dealType === 'buy'  ? d.estimatedPrice : '');
+                          const sell = d.salePrice     ?? (d.dealType === 'sell' ? d.estimatedPrice : '');
+                          const hasBuy  = buy  != null && buy  !== '';
+                          const hasSell = sell != null && sell !== '';
+                          if (!hasBuy && !hasSell) return <span className="text-slate-400 dark:text-slate-500 italic">—</span>;
+                          return (
+                            <div className="leading-tight">
+                              <div className="text-emerald-700 dark:text-emerald-400">A {hasBuy ? fmt(Number(buy), 2) : '—'}</div>
+                              <div className="text-blue-700 dark:text-blue-400">V {hasSell ? fmt(Number(sell), 2) : '—'}</div>
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td className="py-2 px-4 text-slate-800 dark:text-slate-200">{d.incoterm}</td>
                       <td className="py-2 px-4 text-xs text-slate-600 dark:text-slate-400">{d.laycanFrom} → {d.laycanTo}</td>
                       <td className="py-2 px-4">
