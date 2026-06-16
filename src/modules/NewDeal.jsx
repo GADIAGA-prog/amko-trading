@@ -23,7 +23,7 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
     incoterm: 'FOB', loadPort: '', dischargePort: '',
     laycanFrom: todayISO(), laycanTo: todayISO(), blDate: '',
     priceSource: 'Platts', priceMarker: plattsProducts[0]?.code || 'brent', differential: '',
-    estimatedPrice: '', paymentTerm: 'LC at sight',
+    estimatedPrice: '', purchasePrice: '', salePrice: '', paymentTerm: 'LC at sight',
     vessel: '', inspector: 'SGS', hedgeRatio: 100, notes: '',
     status: 'open', createdAt: todayISO(),
     bankRating: 'A', counterpartyTier: 'first-class',
@@ -68,7 +68,10 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
       alert('Contrepartie et quantité sont obligatoires.');
       return;
     }
-    onSave(form);
+    // estimatedPrice reste le prix de la "jambe" du deal (achat ou vente)
+    // pour rester compatible avec les modules qui le lisent (P&L, Pricing…)
+    const legPrice = form.dealType === 'sell' ? form.salePrice : form.purchasePrice;
+    onSave({ ...form, estimatedPrice: legPrice || form.estimatedPrice });
   };
 
   // ── Pré-remplissage deal exemple Vitol → Lomé ───────────────
@@ -92,6 +95,8 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
       priceMarker: 'gasoil',
       differential: '65.62',
       estimatedPrice: '1247.37',
+      purchasePrice: '1247.37',
+      salePrice: '',
       paymentTerm: 'LC at sight',
       bankRating: 'first-class',
       hedgeRatio: 100,
@@ -122,6 +127,8 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
       priceMarker: 'gasoil',
       differential: '139',
       estimatedPrice: '1215.24',
+      purchasePrice: '',
+      salePrice: '1215.24',
       paymentTerm: 'J+30 ouvrables (LC irrévocable)',
       bankRating: 'A',
       hedgeRatio: 0,
@@ -282,7 +289,8 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
             <Field label="Source de cotation"><Select value={form.priceSource} onChange={e => update('priceSource', e.target.value)}>{PRICE_SOURCES.map(s => <option key={s}>{s}</option>)}</Select></Field>
             <Field label="Marker / code Platts"><Input value={form.priceMarker} onChange={e => update('priceMarker', e.target.value)} placeholder="Ex. AAVJI00-PLM" /></Field>
             <Field label="Différentiel / prime"><Input type="number" step="0.01" value={form.differential} onChange={e => update('differential', e.target.value)} placeholder="+70" /></Field>
-            <Field label="Prix estimé (USD/MT)"><Input type="number" step="0.01" value={form.estimatedPrice} onChange={e => update('estimatedPrice', e.target.value)} placeholder="Prix Platts ou offre fournisseur" /></Field>
+            <Field label="Prix achat (USD/MT)" hint="Prix fournisseur / amont"><Input type="number" step="0.01" value={form.purchasePrice} onChange={e => update('purchasePrice', e.target.value)} placeholder="Ex. 1247.37" /></Field>
+            <Field label="Prix vente (USD/MT)" hint="Prix client / aval"><Input type="number" step="0.01" value={form.salePrice} onChange={e => update('salePrice', e.target.value)} placeholder="Ex. 1215.24" /></Field>
             <Field label="Conditions de paiement"><Select value={form.paymentTerm} onChange={e => update('paymentTerm', e.target.value)}><option>LC at sight</option><option>LC deferred 30 days</option><option>LC deferred 60 days</option><option>Open credit</option><option>Prépaiement</option><option>SBLC</option></Select></Field>
             <Field label="Statut"><Select value={form.status} onChange={e => update('status', e.target.value)}><option value="open">Ouvert</option><option value="contracted">Contractualisé</option><option value="financed">Financé (LC OK)</option><option value="loaded">Chargé</option><option value="discharged">Déchargé</option><option value="closed">Soldé</option></Select></Field>
           </div>
@@ -334,10 +342,13 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
                           {form.differential ? <span className="text-blue-600 dark:text-blue-400"> + {form.differential} = {(mopBL.avg + Number(form.differential)).toFixed(2)}</span> : null}
                         </span>
                         <button
-                          onClick={() => update('estimatedPrice', (mopBL.avg + Number(form.differential || 0)).toFixed(2))}
+                          onClick={() => {
+                            const v = (mopBL.avg + Number(form.differential || 0)).toFixed(2);
+                            setForm(f => ({ ...f, purchasePrice: v, estimatedPrice: v }));
+                          }}
                           className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
                         >
-                          → Utiliser
+                          → Prix achat
                         </button>
                       </div>
                     </>
@@ -378,10 +389,13 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
                             {form.differential ? <span className="text-emerald-600 dark:text-emerald-400"> + {form.differential} = {(mopPeriod.avg + Number(form.differential || 0)).toFixed(2)}</span> : null}
                           </span>
                           <button
-                            onClick={() => update('estimatedPrice', (mopPeriod.avg + Number(form.differential || 0)).toFixed(2))}
+                            onClick={() => {
+                              const v = (mopPeriod.avg + Number(form.differential || 0)).toFixed(2);
+                              setForm(f => ({ ...f, salePrice: v, estimatedPrice: v }));
+                            }}
                             className="text-xs px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition"
                           >
-                            → Utiliser
+                            → Prix vente
                           </button>
                         </div>
                       </>
