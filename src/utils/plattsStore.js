@@ -161,3 +161,46 @@ export function clearPlattsStore() {
   LEGACY_PLATTS_KEYS.forEach((key) => localStorage.removeItem(key));
   window.dispatchEvent(new CustomEvent('amko:platts-updated', { detail: null }));
 }
+
+/**
+ * Calcule le MOP (Mean Of Platts) sur une fenêtre symétrique autour d'une date BL.
+ * @param {string} code       — code Platts (ex. 'AAVJI00') ou 'platts:AAVJI00'
+ * @param {string} blDateStr  — date BL en ISO YYYY-MM-DD
+ * @param {number} nDaysAround — nombre de jours ouvrables de chaque côté (ex. 2 → fenêtre de 5j)
+ */
+export function getMOPWindow(code, blDateStr, nDaysAround) {
+  const store = loadPlattsStore();
+  const clean = normalizePlattsCode(String(code || '').replace(/^platts:/, ''));
+  if (!clean || !blDateStr) return null;
+  const sortedAsc = [...(store.dates || [])].sort();
+  const blIdx = sortedAsc.indexOf(blDateStr);
+  if (blIdx < 0) return null;
+  const startIdx = Math.max(0, blIdx - nDaysAround);
+  const endIdx = Math.min(sortedAsc.length - 1, blIdx + nDaysAround);
+  const windowDates = sortedAsc.slice(startIdx, endIdx + 1);
+  const rows = windowDates.map(date => ({ date, price: store.prices?.[date]?.[clean] ?? null, isBL: date === blDateStr }));
+  const withPrices = rows.filter(r => r.price != null);
+  if (withPrices.length === 0) return null;
+  const avg = withPrices.reduce((s, r) => s + r.price, 0) / withPrices.length;
+  return { rows, withPrices, avg, count: withPrices.length, code: clean, description: store.descriptions?.[clean] || clean };
+}
+
+/**
+ * Calcule la moyenne Platts sur une période BL → livraison (inclus).
+ * @param {string} code          — code Platts
+ * @param {string} startDateStr  — date début ISO (BL)
+ * @param {string} endDateStr    — date fin ISO (livraison)
+ */
+export function getPricesForPeriod(code, startDateStr, endDateStr) {
+  const store = loadPlattsStore();
+  const clean = normalizePlattsCode(String(code || '').replace(/^platts:/, ''));
+  if (!clean || !startDateStr || !endDateStr) return null;
+  const rows = [...(store.dates || [])]
+    .filter(d => d >= startDateStr && d <= endDateStr)
+    .sort()
+    .map(date => ({ date, price: store.prices?.[date]?.[clean] ?? null }));
+  const withPrices = rows.filter(r => r.price != null);
+  if (withPrices.length === 0) return null;
+  const avg = withPrices.reduce((s, r) => s + r.price, 0) / withPrices.length;
+  return { rows, withPrices, avg, count: withPrices.length, code: clean, description: store.descriptions?.[clean] || clean };
+}

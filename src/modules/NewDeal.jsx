@@ -3,7 +3,7 @@ import { FilePlus2, Ship, DollarSign, Droplets, ScrollText, Save, Zap } from 'lu
 import { PRODUCTS, INCOTERMS, VESSELS, PRICE_SOURCES } from '../constants.js';
 import { uid, todayISO } from '../utils.js';
 import { Card, CardHeader, CardBody, Field, Input, Select, Textarea, Button } from '../components/UI.jsx';
-import { getLatestPlattsPrice, getPlattsProductOptions } from '../utils/plattsStore.js';
+import { getLatestPlattsPrice, getPlattsProductOptions, getMOPWindow, getPricesForPeriod } from '../utils/plattsStore.js';
 
 function productLabel(value) {
   if (PRODUCTS[value]) return PRODUCTS[value].name;
@@ -85,20 +85,20 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
       incoterm: 'FOB',
       loadPort: 'Augusta (MED)',
       dischargePort: 'Lomé, Togo',
-      laycanFrom: '2026-06-01',
-      laycanTo: '2026-06-15',
-      blDate: '2026-06-01',
+      laycanFrom: '2026-05-18',
+      laycanTo: '2026-05-18',
+      blDate: '2026-05-18',
       priceSource: 'Platts',
       priceMarker: 'gasoil',
       differential: '65.62',
-      estimatedPrice: '1126.62',
+      estimatedPrice: '1247.37',
       paymentTerm: 'LC at sight',
       bankRating: 'first-class',
       hedgeRatio: 100,
       vessel: 'MR2 (TBN)',
       inspector: 'SGS',
       status: 'contracted',
-      notes: 'Gasoil 0,1%S FOB MED. Pricing: Platts MED Gasoil 0,1%S moyenne 5j autour BL (01/06/2026). Prime Vitol: +65,62 USD/MT. Platts référence: 1 061 USD/MT.',
+      notes: 'Gasoil 0,1%S FOB MED. BL: 18/05/2026. Pricing Vitol: Platts MED Gasoil 0,1%S moy. 5j autour BL (14-20/05/2026): 1 181,75 USD/MT. Prime Vitol: +65,62 USD/MT → Prix achat: 1 247,37 USD/MT. Hedge ICE GOB: SHORT 150 lots entrés à 1 233,50 le 18/05, levés MOP sur 19 JO (avg 1 087,57). Gain hedge: +2 187 450 USD.',
     }));
   };
 
@@ -115,26 +115,42 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
       incoterm: 'DAP',
       loadPort: 'Augusta (MED)',
       dischargePort: 'Lomé, Togo',
-      laycanFrom: '2026-06-01',
-      laycanTo: '2026-06-15',
-      blDate: '2026-06-01',
+      laycanFrom: '2026-05-18',
+      laycanTo: '2026-06-12',
+      blDate: '2026-05-18',
       priceSource: 'Platts',
       priceMarker: 'gasoil',
       differential: '139',
-      estimatedPrice: '1200',
+      estimatedPrice: '1215.24',
       paymentTerm: 'J+30 ouvrables (LC irrévocable)',
       bankRating: 'A',
       hedgeRatio: 0,
       vessel: 'MR2 (TBN)',
       inspector: 'SGS',
       status: 'contracted',
-      notes: 'Gasoil 0,1%S DAP Lomé. Pricing: Platts MED Gasoil 0,1%S moyenne quotidienne BL→livraison (01/06→15/06/2026). Prime AMKO: +139 USD/MT. Prix vente cible: 1 200 USD/MT. Paiement client en XOF J+30 ouvrables. Couverture FX forward USD/XOF requise.',
+      notes: 'Gasoil 0,1%S DAP Lomé. Livraison: 12/06/2026. Pricing AMKO: Platts MED Gasoil 0,1%S moy. 19 JO BL→livraison (18/05→12/06/2026): 1 076,24 USD/MT. Prime AMKO: +139 USD/MT → Prix vente: 1 215,24 USD/MT. Paiement client en XOF J+30 JO (24/07/2026). FX forward USD/XOF requis (tenor 42j). Marge nette avec hedge ICE: +100,72 USD/MT (+1 510 726 USD).',
     }));
   };
+
+  const [nDaysAround, setNDaysAround] = useState(2);
 
   const selectedPlatts = String(form.product || '').startsWith('platts:')
     ? getLatestPlattsPrice(String(form.product).replace('platts:', ''))
     : null;
+
+  const plattsCode = String(form.product || '').startsWith('platts:')
+    ? String(form.product).replace('platts:', '')
+    : form.priceMarker || '';
+
+  const mopBL = useMemo(() => {
+    if (!plattsCode || !form.blDate) return null;
+    return getMOPWindow(plattsCode, form.blDate, nDaysAround);
+  }, [plattsCode, form.blDate, nDaysAround]);
+
+  const mopPeriod = useMemo(() => {
+    if (!plattsCode || !form.blDate || !form.laycanTo) return null;
+    return getPricesForPeriod(plattsCode, form.blDate, form.laycanTo);
+  }, [plattsCode, form.blDate, form.laycanTo]);
 
   return (
     <div className="space-y-6">
@@ -266,10 +282,119 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
             <Field label="Source de cotation"><Select value={form.priceSource} onChange={e => update('priceSource', e.target.value)}>{PRICE_SOURCES.map(s => <option key={s}>{s}</option>)}</Select></Field>
             <Field label="Marker / code Platts"><Input value={form.priceMarker} onChange={e => update('priceMarker', e.target.value)} placeholder="Ex. AAVJI00-PLM" /></Field>
             <Field label="Différentiel / prime"><Input type="number" step="0.01" value={form.differential} onChange={e => update('differential', e.target.value)} placeholder="+70" /></Field>
-            <Field label="Prix estimé"><Input type="number" step="0.01" value={form.estimatedPrice} onChange={e => update('estimatedPrice', e.target.value)} placeholder="Prix Platts ou offre fournisseur" /></Field>
+            <Field label="Prix estimé (USD/MT)"><Input type="number" step="0.01" value={form.estimatedPrice} onChange={e => update('estimatedPrice', e.target.value)} placeholder="Prix Platts ou offre fournisseur" /></Field>
             <Field label="Conditions de paiement"><Select value={form.paymentTerm} onChange={e => update('paymentTerm', e.target.value)}><option>LC at sight</option><option>LC deferred 30 days</option><option>LC deferred 60 days</option><option>Open credit</option><option>Prépaiement</option><option>SBLC</option></Select></Field>
             <Field label="Statut"><Select value={form.status} onChange={e => update('status', e.target.value)}><option value="open">Ouvert</option><option value="contracted">Contractualisé</option><option value="financed">Financé (LC OK)</option><option value="loaded">Chargé</option><option value="discharged">Déchargé</option><option value="closed">Soldé</option></Select></Field>
           </div>
+
+          {/* ── Calculateur MOP ── */}
+          {plattsCode && form.blDate && (
+            <div className="mt-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">
+                  Calculateur MOP — Moyenne Of Platts
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-500">Jours autour du BL (chaque côté) :</span>
+                  <select
+                    value={nDaysAround}
+                    onChange={e => setNDaysAround(Number(e.target.value))}
+                    className="text-xs border border-slate-300 dark:border-slate-600 rounded px-2 py-1 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
+                  >
+                    {[1,2,3,4,5].map(n => <option key={n} value={n}>{n}j ({2*n+1} au total)</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                {/* MOP achat : N jours autour du BL */}
+                <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3">
+                  <div className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2">
+                    MOP achat — {2 * nDaysAround + 1}j autour BL ({form.blDate})
+                  </div>
+                  {mopBL ? (
+                    <>
+                      <table className="w-full text-xs mb-2">
+                        <thead><tr className="text-blue-700 dark:text-blue-400">
+                          <th className="text-left pb-1">Date</th>
+                          <th className="text-right pb-1">Platts (USD/MT)</th>
+                        </tr></thead>
+                        <tbody>
+                          {mopBL.rows.map(r => (
+                            <tr key={r.date} className={r.isBL ? 'font-bold text-blue-900 dark:text-blue-100' : 'text-slate-700 dark:text-slate-300'}>
+                              <td>{r.date}{r.isBL ? ' ★ BL' : ''}</td>
+                              <td className="text-right">{r.price != null ? r.price.toFixed(2) : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      <div className="flex items-center justify-between border-t border-blue-200 dark:border-blue-700 pt-2">
+                        <span className="font-semibold text-blue-900 dark:text-blue-100 text-sm">
+                          Moy. {mopBL.count}j : <b>{mopBL.avg.toFixed(2)} USD/MT</b>
+                          {form.differential ? <span className="text-blue-600 dark:text-blue-400"> + {form.differential} = {(mopBL.avg + Number(form.differential)).toFixed(2)}</span> : null}
+                        </span>
+                        <button
+                          onClick={() => update('estimatedPrice', (mopBL.avg + Number(form.differential || 0)).toFixed(2))}
+                          className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+                        >
+                          → Utiliser
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+                      Aucune donnée Platts pour ce code et cette date BL. Importez un fichier Platts avec les dates autour du {form.blDate}.
+                    </p>
+                  )}
+                </div>
+
+                {/* MOP vente : BL → laycanTo (livraison) */}
+                {form.laycanTo && form.laycanTo >= form.blDate && (
+                  <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 p-3">
+                    <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 mb-2">
+                      MOP vente — BL→livraison ({form.blDate} → {form.laycanTo})
+                    </div>
+                    {mopPeriod ? (
+                      <>
+                        <div className="max-h-40 overflow-y-auto">
+                          <table className="w-full text-xs mb-2">
+                            <thead><tr className="text-emerald-700 dark:text-emerald-400">
+                              <th className="text-left pb-1">Date</th>
+                              <th className="text-right pb-1">Platts (USD/MT)</th>
+                            </tr></thead>
+                            <tbody>
+                              {mopPeriod.rows.map(r => (
+                                <tr key={r.date} className="text-slate-700 dark:text-slate-300">
+                                  <td>{r.date}</td>
+                                  <td className="text-right">{r.price != null ? r.price.toFixed(2) : '—'}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        <div className="flex items-center justify-between border-t border-emerald-200 dark:border-emerald-700 pt-2">
+                          <span className="font-semibold text-emerald-900 dark:text-emerald-100 text-sm">
+                            Moy. {mopPeriod.count}j : <b>{mopPeriod.avg.toFixed(2)} USD/MT</b>
+                            {form.differential ? <span className="text-emerald-600 dark:text-emerald-400"> + {form.differential} = {(mopPeriod.avg + Number(form.differential || 0)).toFixed(2)}</span> : null}
+                          </span>
+                          <button
+                            onClick={() => update('estimatedPrice', (mopPeriod.avg + Number(form.differential || 0)).toFixed(2))}
+                            className="text-xs px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition"
+                          >
+                            → Utiliser
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400 italic">
+                        Aucune donnée Platts pour la période {form.blDate} → {form.laycanTo}.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </CardBody>
       </Card>
 
