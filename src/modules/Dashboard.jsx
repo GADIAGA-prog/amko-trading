@@ -9,8 +9,9 @@ export default function Dashboard({ deals, goTo, marketPrices, setMarketPrice })
   const total         = deals.length;
   const openDeals     = deals.filter(d => d.status !== 'closed').length;
   const totalVolume   = deals.reduce((s, d) => s + (Number(d.quantity) || 0), 0);
+  // estimatedPrice est en $/MT → notional = quantité (MT) × prix ($/MT)
   const totalNotional = deals.reduce(
-    (s, d) => s + (Number(d.quantity) || 0) * (Number(d.estimatedPrice) || 0) * (PRODUCTS[d.product]?.bblPerMT || 7.5),
+    (s, d) => s + (Number(d.quantity) || 0) * (Number(d.estimatedPrice) || 0),
     0,
   );
   const recent = [...deals].slice(-5).reverse();
