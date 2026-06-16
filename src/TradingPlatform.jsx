@@ -253,6 +253,7 @@ export default function TradingPlatform() {
   const saveHedge           = (dealId, hedgeData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, hedging: hedgeData, hedgeRatio: hedgeData.hedgeRatio } : d));
   const saveRiskMatrix      = (dealId, riskData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, riskMatrix: riskData } : d));
   const savePnLFreight      = (dealId, freightAmount) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: { ...(d.freight || {}), totalFreight: freightAmount } } : d));
+  const savePnL             = (dealId, pnlData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pnl: pnlData } : d));
   const savePricingValidation = (dealId, pvData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pricingValidation: pvData } : d));
   const savePricing         = (dealId, pricingData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pricing: pricingData, estimatedPrice: String(pricingData.finalPrice) } : d));
   const pushMopToDeal       = (dealId, plattsCode, priceBbl) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, estimatedPrice: String(Math.round(priceBbl * 1000) / 1000), plattsCode } : d));
@@ -412,7 +413,7 @@ export default function TradingPlatform() {
             {activeTab === 'pricing'    && <Pricing marketPrices={marketPrices} deals={deals} onPricingSaved={savePricing} />}
             {activeTab === 'freight'    && <Freight deals={deals} onFreightSaved={saveFreight} />}
             {activeTab === 'lots'       && <Lots deals={deals} onLotsUpdated={saveLots} />}
-            {activeTab === 'pnl'        && <PnL deals={deals} marketPrices={marketPrices} onFreightSaved={savePnLFreight} />}
+            {activeTab === 'pnl'        && <PnL deals={deals} marketPrices={marketPrices} onFreightSaved={savePnLFreight} onPnLSaved={savePnL} />}
             {activeTab === 'lc'         && <LCChecker />}
             {activeTab === 'risk'       && <RiskMatrix deals={deals} onRiskSaved={saveRiskMatrix} />}
             {activeTab === 'fx-pricing'  && <FxPricingValidator deals={deals} onPricingValidated={savePricingValidation} currentUser={currentUser} />}

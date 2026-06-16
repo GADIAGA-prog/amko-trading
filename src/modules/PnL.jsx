@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, BarChart3, AlertTriangle } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, BarChart3, AlertTriangle, Save, CheckCircle2 } from 'lucide-react';
 import { PRODUCTS } from '../constants.js';
 import { fmt, fmtUSD } from '../utils.js';
 import { Card, CardHeader, CardBody, Field, Input, Select, Row, Button } from '../components/UI.jsx';
@@ -15,7 +15,7 @@ const FINANCING_INSTRUMENTS = [
   'Autre',
 ];
 
-export default function PnL({ deals, marketPrices, onFreightSaved }) {
+export default function PnL({ deals, marketPrices, onFreightSaved, onPnLSaved }) {
   const [selectedDealId, setSelectedDealId] = useState('');
   const [buyPrice,   setBuyPrice]   = useState('');
   const [sellPrice,  setSellPrice]  = useState('');
@@ -73,6 +73,32 @@ export default function PnL({ deals, marketPrices, onFreightSaved }) {
     financing,
     hedgingResult, fxResult,
   });
+
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { setSaved(false); }, [selectedDealId]);
+
+  const savePnLToDeal = () => {
+    if (!selectedDealId || !onPnLSaved) return;
+    onPnLSaved(selectedDealId, {
+      buyPrice: Number(buyPrice) || 0,
+      sellPrice: Number(sellPrice) || 0,
+      quantity: qty,
+      freight: Number(freight) || 0,
+      inspection: Number(inspection) || 0,
+      insurance: Number(insurance) || 0,
+      demurrage: Number(demurrage) || 0,
+      other: Number(other) || 0,
+      financingInstrument,
+      financing: financingCost,
+      hedgingResult: hedge,
+      fxResult: fx,
+      pnl1, pnl2, pnl3,
+      pnl1PerMT, pnl2PerMT, pnl3PerMT,
+      savedAt: new Date().toISOString(),
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
 
   return (
     <div className="space-y-6">
@@ -218,6 +244,23 @@ export default function PnL({ deals, marketPrices, onFreightSaved }) {
             <PnLLevel
               n={3} label="Marge nette" sub="P&L 2 + hedging + couverture FX"
               value={pnl3} perMT={pnl3PerMT} pct={pnl3Pct} accent="result" big />
+
+            {/* ── Validation ───────────────────────────────────── */}
+            <div className="mt-4 flex items-center justify-end gap-3">
+              {saved && (
+                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                  <CheckCircle2 className="w-4 h-4" /> P&amp;L validé dans le deal
+                </span>
+              )}
+              <Button variant="primary" icon={Save} onClick={savePnLToDeal} disabled={!selectedDealId}>
+                Valider le P&amp;L
+              </Button>
+            </div>
+            {!selectedDealId && (
+              <p className="text-xs text-slate-400 dark:text-slate-500 text-right mt-1">
+                Liez un deal ci-dessus pour pouvoir valider.
+              </p>
+            )}
           </CardBody>
         </Card>
       </div>
