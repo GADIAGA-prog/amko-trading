@@ -101,21 +101,24 @@ export function analyzeDeal(deal) {
     });
   }
 
-  // 9a. Différentiel absent
+  // 9a. Différentiel absent — unité selon le produit : $/bbl pour un brut, $/MT pour un raffiné/GPL
   const diff = Number(deal.differential);
+  const diffIsCrude   = product?.type === 'crude';
+  const diffUnit      = diffIsCrude ? '$/bbl' : '$/MT';
+  const diffThreshold = diffIsCrude ? 10 : 150;
   if (isNaN(diff) || deal.differential === '') {
     issues.push({
       level: 'med', area: 'Pricing',
       title: 'Différentiel non renseigné',
       detail: 'Sans différentiel, impossible de comparer le pricing à des benchmarks.',
-      action: 'Renseigner le différentiel (prime/décote) en $/bbl.',
+      action: `Renseigner le différentiel (prime/décote) en ${diffUnit}.`,
     });
   // 9b. Différentiel inhabituel
-  } else if (Math.abs(diff) > 10) {
+  } else if (Math.abs(diff) > diffThreshold) {
     issues.push({
       level: 'med', area: 'Pricing',
       title: 'Différentiel inhabituel',
-      detail: `Un différentiel de ${diff > 0 ? '+' : ''}${diff} $/bbl est très élevé.`,
+      detail: `Un différentiel de ${diff > 0 ? '+' : ''}${diff} ${diffUnit} est très élevé.`,
       action: 'Comparer à un assessment Platts/Argus récent pour valider.',
     });
   }

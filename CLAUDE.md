@@ -1,14 +1,24 @@
 # AMKO Trading — Guide Claude Code
 
 Plateforme de trading de produits pétroliers (Brent, WTI, Gasoil, ULSD, RBOB, Natural Gas).
-Stack : React + TypeScript + Vite + Tailwind CSS. Tout le state est local (pas de backend).
+Stack : React + JavaScript (JSX) + Vite + Tailwind CSS. Tout le state est local (pas de backend, sauf `api/chat.js` pour les agents IA).
 
 ## Structure du projet
 
-- [src/components/](src/components/) — modules métier (deals, hedging, pricing, P&L, fret, LC, risques)
-- [src/App.tsx](src/App.tsx) — routage principal et layout
-- [src/types/](src/types/) — types TypeScript partagés
-- [src/utils/](src/utils/) — fonctions de calcul (formules Platts/Argus, Worldscale, P&L)
+- [src/TradingPlatform.jsx](src/TradingPlatform.jsx) — routage principal, layout, handlers de sauvegarde des deals
+- [src/modules/](src/modules/) — modules métier (Cockpit deal, Book de position, hedging, pricing, P&L, fret, LC, risques, FX…)
+- [src/calc/](src/calc/) — logique de calcul pure sans React (hedge, P&L, FX, position, cycle de vie du deal)
+- [src/components/](src/components/) — primitives UI (Card, Field, Stat…), widgets TradingView, logo
+- [src/auth/](src/auth/) — écrans et helpers d'authentification (localStorage)
+- [src/utils/](src/utils/) — stores localStorage (Platts, rolls) ; [src/utils.js](src/utils.js) — helpers (fmt, uid…)
+- [src/constants.js](src/constants.js) — référentiels PRODUCTS, CONTRACTS, rôles, sanctions
+
+## Modèle de données
+
+Un tableau `deals` par utilisateur (clé `deals_user_<id>` en localStorage). Chaque module
+enrichit le deal d'un sous-objet persistant : `deal.pricing`, `.pricingValidation`, `.hedging`,
+`.fxHedge`, `.freight`, `.lots`, `.riskMatrix`, `.lcCheck`, `.pnl`. Le Cockpit deal et le
+Book de position agrègent ces sous-objets — toute nouvelle donnée métier doit suivre ce motif.
 
 ## Commandes
 

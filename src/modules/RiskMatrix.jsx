@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import { AlertTriangle, ShieldAlert, ShieldCheck, TrendingUp } from 'lucide-react';
-import { Card, CardHeader, CardBody, Select } from '../components/UI.jsx';
+import React, { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, ShieldAlert, ShieldCheck, TrendingUp, Save, CheckCircle2 } from 'lucide-react';
+import { Card, CardHeader, CardBody, Select, Button } from '../components/UI.jsx';
 import { assessDealRisks, formatRiskStatus } from '../calc/dealRiskEngine.js';
 
 function badgeClass(level) {
@@ -16,10 +16,31 @@ function verdictClass(status) {
   return 'bg-emerald-600 text-white';
 }
 
-export default function RiskMatrix({ deals, onRiskSaved }) {
+export default function RiskMatrix({ deals, onRiskSaved, initialDealId }) {
   const [selectedDealId, setSelectedDealId] = useState('');
+
+  useEffect(() => {
+    if (initialDealId && deals.some(d => d.id === initialDealId)) setSelectedDealId(initialDealId);
+  }, [initialDealId]);
   const selectedDeal = deals.find(d => d.id === selectedDealId) || deals[0] || null;
   const assessment = useMemo(() => selectedDeal ? assessDealRisks(selectedDeal) : null, [selectedDeal]);
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { setSaved(false); }, [selectedDeal?.id]);
+
+  const saveToDeal = () => {
+    if (!selectedDeal || !assessment || !onRiskSaved) return;
+    onRiskSaved(selectedDeal.id, {
+      totalScore: assessment.totalScore,
+      level:      assessment.level,
+      status:     assessment.status,
+      summary:    assessment.summary,
+      blockers:   assessment.blockers,
+      hedgeCount: assessment.hedges.length,
+      savedAt:    new Date().toISOString(),
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
 
   return (
     <div className="space-y-6">
@@ -61,6 +82,17 @@ export default function RiskMatrix({ deals, onRiskSaved }) {
               <div className="text-xs uppercase text-slate-500">Couvertures</div>
               <div className="text-3xl font-bold">{assessment.hedges.length}</div>
             </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3">
+            {saved && (
+              <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                <CheckCircle2 className="w-4 h-4" /> Analyse enregistrée dans le deal
+              </span>
+            )}
+            <Button variant="primary" icon={Save} onClick={saveToDeal} disabled={!onRiskSaved || !selectedDeal}>
+              Enregistrer l'analyse dans le deal
+            </Button>
           </div>
 
           {assessment.blockers.length > 0 && (

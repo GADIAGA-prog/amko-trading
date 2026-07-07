@@ -1,11 +1,15 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Lightbulb, AlertTriangle, CheckCircle2, Info } from 'lucide-react';
 import { PRODUCTS } from '../constants.js';
 import { Card, CardHeader, CardBody, Select, Stat } from '../components/UI.jsx';
 import { analyzeDeal } from '../calc/optimizerCalc.js';
 
-export default function Optimizer({ deals }) {
+export default function Optimizer({ deals, initialDealId }) {
   const [selectedId, setSelectedId] = useState('');
+
+  useEffect(() => {
+    if (initialDealId && deals.some(d => d.id === initialDealId)) setSelectedId(initialDealId);
+  }, [initialDealId]);
   const deal = deals.find(d => d.id === selectedId);
 
   const analysis = useMemo(() => analyzeDeal(deal), [deal]);

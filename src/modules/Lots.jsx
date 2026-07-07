@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Layers, Plus, Trash2, CheckCircle2, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Layers, Plus, Trash2, CheckCircle2, Clock, ArrowUpRight } from 'lucide-react';
 import { PRODUCTS, INCOTERMS } from '../constants.js';
 import { fmt, fmtUSD, uid, todayISO } from '../utils.js';
 import { Card, CardHeader, CardBody, Field, Input, Select, Button, Stat } from '../components/UI.jsx';
@@ -40,9 +40,15 @@ const STATUS_LABELS = {
   discharged: { label: 'Déchargé ✓', color: 'bg-emerald-100 text-emerald-700' },
 };
 
-export default function Lots({ deals, onLotsUpdated }) {
+export default function Lots({ deals, onLotsUpdated, onPushPrice, initialDealId }) {
   const [selectedDealId, setSelectedDealId] = useState('');
   const [editing, setEditing] = useState(null); // lot id being edited
+  const [pushed, setPushed] = useState(false);
+
+  useEffect(() => {
+    if (initialDealId && deals.some(d => d.id === initialDealId)) setSelectedDealId(initialDealId);
+  }, [initialDealId]);
+  useEffect(() => { setPushed(false); }, [selectedDealId]);
 
   const deal = deals.find(d => d.id === selectedDealId);
   const lots = deal?.lots || [];
@@ -306,7 +312,22 @@ export default function Lots({ deals, onLotsUpdated }) {
           {/* Récap tarifaire */}
           {pricedLots.length > 0 && (
             <Card>
-              <CardHeader icon={CheckCircle2} title="Récapitulatif des lots pricés" />
+              <CardHeader icon={CheckCircle2} title="Récapitulatif des lots pricés"
+                action={
+                  <div className="flex items-center gap-3">
+                    {pushed && (
+                      <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                        <CheckCircle2 className="w-4 h-4" /> Prix reporté dans le deal
+                      </span>
+                    )}
+                    {onPushPrice && weightedAvgPrice > 0 && (
+                      <Button variant="gold" size="sm" icon={ArrowUpRight}
+                        onClick={() => { onPushPrice(deal.id, weightedAvgPrice); setPushed(true); setTimeout(() => setPushed(false), 3000); }}>
+                        → Prix {deal.dealType === 'sell' ? 'vente' : 'achat'} du deal ({fmt(weightedAvgPrice, 2)})
+                      </Button>
+                    )}
+                  </div>
+                } />
               <CardBody className="p-0">
                 <table className="w-full text-sm">
                   <thead>

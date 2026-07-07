@@ -98,7 +98,7 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
       purchasePrice: '1247.37',
       salePrice: '',
       paymentTerm: 'LC at sight',
-      bankRating: 'first-class',
+      bankRating: 'AA',
       hedgeRatio: 100,
       vessel: 'MR2 (TBN)',
       inspector: 'SGS',

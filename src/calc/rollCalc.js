@@ -14,9 +14,11 @@ export function computeRoll({ position, frontPrice, nextPrice, nLots, contractKe
   const netPerBbl  = position === 'short' ? rollSpread : -rollSpread;
   const totalRoll  = netPerBbl * totalBbl;
   const isCredit   = totalRoll > 0;
+  // Seuil de structure adapté à l'unité du contrat (≈ 0,1 $/bbl ↔ 0,75 $/MT)
+  const flatEps    = contract.unit === 'MT' ? 0.75 : 0.1;
   const structure  =
-    rollSpread >  0.1 ? 'CONTANGO' :
-    rollSpread < -0.1 ? 'BACKWARDATION' : 'FLAT';
+    rollSpread >  flatEps ? 'CONTANGO' :
+    rollSpread < -flatEps ? 'BACKWARDATION' : 'FLAT';
 
   return { contract, rollSpread, totalBbl, netPerBbl, totalRoll, isCredit, structure };
 }

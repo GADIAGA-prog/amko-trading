@@ -24,7 +24,7 @@ function buildFreightData(mode, flatRate, wsRate, addressCom, tonnage, secaNm, s
   };
 }
 
-export default function Freight({ deals = [], onFreightSaved }) {
+export default function Freight({ deals = [], onFreightSaved, initialDealId }) {
   const [linkedDealId, setLinkedDealId] = useState('');
   const [saved,        setSaved]        = useState(false);
 
@@ -39,6 +39,10 @@ export default function Freight({ deals = [], onFreightSaved }) {
   const [lumpsum,     setLumpsum]     = useState('');
   const [demHours,    setDemHours]    = useState('0');
   const [demRate,     setDemRate]     = useState('25000');
+
+  useEffect(() => {
+    if (initialDealId && deals.some(d => d.id === initialDealId)) setLinkedDealId(initialDealId);
+  }, [initialDealId]);
 
   // ── Pré-remplir depuis le deal sélectionné ────────────────────
   useEffect(() => {
@@ -71,7 +75,8 @@ export default function Freight({ deals = [], onFreightSaved }) {
   const ws  = Number(wsRate)     || 0;
   const ac  = Number(addressCom) || 0;
   const t   = Number(tonnage)    || 0;
-  const wsNet       = ws - ac;
+  // La commission d'adresse est un % du fret brut (usage marché), pas des points WS.
+  const wsNet       = ws * (1 - ac / 100);
   const baseFreight = fr * (wsNet / 100) * t;
   const seca        = (Number(secaNm) || 0) * (Number(secaRate) || 0);
   const other       = Number(otherCosts) || 0;

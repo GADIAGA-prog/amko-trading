@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { FileCheck2 } from 'lucide-react';
-import { Card, CardHeader, CardBody } from '../components/UI.jsx';
+import React, { useState, useEffect } from 'react';
+import { FileCheck2, Save, CheckCircle2 } from 'lucide-react';
+import { PRODUCTS } from '../constants.js';
+import { fmt } from '../utils.js';
+import { Card, CardHeader, CardBody, Select, Button } from '../components/UI.jsx';
 
 const FIELDS = [
   { code: '40A', name: 'Form of Credit',           expected: 'IRREVOCABLE',         tip: 'Doit être irrévocable' },
@@ -27,20 +29,75 @@ const FIELDS = [
   { code: '78',  name: 'Instructions paiement',    expected: '',                    tip: 'Lire les délais' },
 ];
 
-export default function LCChecker() {
+export default function LCChecker({ deals = [], onLCSaved, initialDealId }) {
+  const [selectedDealId, setSelectedDealId] = useState('');
   const [checked, setChecked] = useState({});
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (initialDealId && deals.some(d => d.id === initialDealId)) setSelectedDealId(initialDealId);
+  }, [initialDealId]);
+
+  // Restaurer l'état de vérification sauvegardé dans le deal
+  useEffect(() => {
+    const d = deals.find(x => x.id === selectedDealId);
+    setChecked(d?.lcCheck?.state || {});
+    setSaved(false);
+  }, [selectedDealId]);
+
   const done = Object.values(checked).filter(Boolean).length;
   const pct  = Math.round((done / FIELDS.length) * 100);
+  const selectedDeal = deals.find(d => d.id === selectedDealId);
+
+  const saveToDeal = () => {
+    if (!selectedDealId || !onLCSaved) return;
+    onLCSaved(selectedDealId, {
+      state: checked,
+      done,
+      total: FIELDS.length,
+      savedAt: new Date().toISOString(),
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
+  };
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Vérificateur LC — MT700</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Checklist des champs SWIFT à contrôler</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Checklist des champs SWIFT à contrôler — liez un deal pour sauvegarder la vérification</p>
       </div>
 
+      {/* Liaison deal */}
       <Card>
-        <CardHeader icon={FileCheck2} title={`Progression : ${done} / ${FIELDS.length} champs`} subtitle={`${pct}% complété`} />
+        <CardHeader icon={FileCheck2} title="Lier à un deal (optionnel)"
+          subtitle={selectedDeal?.lcCheck ? `Vérification sauvegardée : ${selectedDeal.lcCheck.done}/${selectedDeal.lcCheck.total} le ${String(selectedDeal.lcCheck.savedAt).slice(0, 10)}` : undefined} />
+        <CardBody>
+          <Select value={selectedDealId} onChange={e => setSelectedDealId(e.target.value)}>
+            <option value="">— Vérification libre (non sauvegardée) —</option>
+            {deals.map(d => (
+              <option key={d.id} value={d.id}>
+                {d.id} — {PRODUCTS[d.product]?.name || d.product} — {d.counterparty || '?'} — {fmt(d.quantity, 0)} MT — {d.paymentTerm || 'paiement ?'}
+              </option>
+            ))}
+          </Select>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader icon={FileCheck2} title={`Progression : ${done} / ${FIELDS.length} champs`} subtitle={`${pct}% complété`}
+          action={
+            <div className="flex items-center gap-3">
+              {saved && (
+                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+                  <CheckCircle2 className="w-4 h-4" /> Sauvegardé dans le deal
+                </span>
+              )}
+              <Button variant="primary" size="sm" icon={Save} onClick={saveToDeal} disabled={!selectedDealId || !onLCSaved}>
+                Sauvegarder dans le deal
+              </Button>
+            </div>
+          } />
         <CardBody>
           <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
             <div className="bg-emerald-600 h-2 rounded-full transition-all" style={{ width: `${pct}%` }} />

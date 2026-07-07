@@ -15,8 +15,12 @@ const FINANCING_INSTRUMENTS = [
   'Autre',
 ];
 
-export default function PnL({ deals, marketPrices, onFreightSaved, onPnLSaved }) {
+export default function PnL({ deals, marketPrices, onFreightSaved, onPnLSaved, initialDealId }) {
   const [selectedDealId, setSelectedDealId] = useState('');
+
+  useEffect(() => {
+    if (initialDealId && deals.some(d => d.id === initialDealId)) setSelectedDealId(initialDealId);
+  }, [initialDealId]);
   const [buyPrice,   setBuyPrice]   = useState('');
   const [sellPrice,  setSellPrice]  = useState('');
   const [quantity,   setQuantity]   = useState('6500');

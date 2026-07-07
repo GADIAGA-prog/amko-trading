@@ -6,9 +6,13 @@ import { Card, CardHeader, CardBody, Field, Input, Select, Row, Button } from '.
 
 const MARKER_TO_KEY = { brent: 'brent', wti: 'wti', gasoil: 'gasoil', dubai: 'brent', 'argus-asci': 'brent' };
 
-export default function Pricing({ marketPrices, deals = [], onPricingSaved }) {
+export default function Pricing({ marketPrices, deals = [], onPricingSaved, initialDealId }) {
   const [linkedDealId,  setLinkedDealId]  = useState('');
   const [saved,         setSaved]         = useState(false);
+
+  useEffect(() => {
+    if (initialDealId && deals.some(d => d.id === initialDealId)) setLinkedDealId(initialDealId);
+  }, [initialDealId]);
 
   const [marker,        setMarker]        = useState('brent');
   const [markerPrice,   setMarkerPrice]   = useState('');

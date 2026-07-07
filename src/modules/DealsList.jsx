@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { Trash2, Download, Upload, Copy, FileJson } from 'lucide-react';
+import { Trash2, Download, Upload, Copy, FileJson, Gauge } from 'lucide-react';
 import { PRODUCTS } from '../constants.js';
 import { fmt } from '../utils.js';
 import { Card, CardBody, Button } from '../components/UI.jsx';
@@ -8,7 +8,7 @@ function escapeCSV(v) {
   return '"' + String(v ?? '').replace(/"/g, '""') + '"';
 }
 
-export default function DealsList({ deals, onEdit, onDelete, onDuplicate, onImportDeals }) {
+export default function DealsList({ deals, onEdit, onDelete, onDuplicate, onImportDeals, onOpen }) {
   const fileInputRef = useRef(null);
 
   // ─── CSV Export ───────────────────────────────────────────────
@@ -20,7 +20,7 @@ export default function DealsList({ deals, onEdit, onDelete, onDuplicate, onImpo
       'Quantité (MT)', 'Tolérance (%)', 'Incoterm',
       'Port chargement', 'Port déchargement',
       'Laycan début', 'Laycan fin', 'Date B/L',
-      'Marker', 'Différentiel', 'Prix estimé ($/bbl)',
+      'Marker', 'Différentiel', 'Prix estimé ($/MT)',
       'Paiement', 'Statut', 'Notes', 'Date création',
     ];
     const rows = deals.map(d => [
@@ -199,6 +199,12 @@ export default function DealsList({ deals, onEdit, onDelete, onDuplicate, onImpo
                       </td>
                       <td className="py-2 px-4">
                         <div className="flex gap-1">
+                          {onOpen && (
+                            <button onClick={() => onOpen(d)} title="Ouvrir le cockpit du deal"
+                              className="text-xs px-2 py-1 flex items-center gap-1 text-white bg-blue-700 hover:bg-blue-800 rounded font-medium">
+                              <Gauge className="w-3.5 h-3.5" /> Cockpit
+                            </button>
+                          )}
                           <button onClick={() => onEdit(d)}
                             className="text-xs px-2 py-1 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded">
                             Éditer

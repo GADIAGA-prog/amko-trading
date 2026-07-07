@@ -62,7 +62,7 @@ function ScenarioRow({ s, ccy, ccyDom }) {
 }
 
 // ─── Composant principal ──────────────────────────────────────────────────────
-export default function FxForward({ deals = [], onFxSaved }) {
+export default function FxForward({ deals = [], onFxSaved, initialDealId }) {
   // ── Liaison deal & sauvegarde ─────────────────────────────────────────────
   const [linkedDeal,   setLinkedDeal]   = useState('');
   const [fxInstrument, setFxInstrument] = useState('Forward ferme');
@@ -138,6 +138,10 @@ export default function FxForward({ deals = [], onFxSaved }) {
   const fxResultForPnL = fxInstrument === 'Option sur devise'
     ? -Math.round(optionResult.totalUpfrontCost || 0)
     : -Math.round(forwardResult.totalCost || 0);
+
+  useEffect(() => {
+    if (initialDealId && deals.some(d => d.id === initialDealId)) setLinkedDeal(initialDealId);
+  }, [initialDealId]);
 
   // ── Restaurer la couverture FX sauvegardée du deal ────────────────────────
   useEffect(() => {

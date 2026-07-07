@@ -4,7 +4,7 @@ import {
   DollarSign, Anchor, BarChart3, FileCheck2, ShieldAlert, Globe,
   Activity, Layers, Lightbulb, Users, User, LogOut, Moon, Sun,
   FileSpreadsheet, RefreshCw, ClipboardList, Zap, Package, Bot, ShieldCheck,
-  ChevronDown, Landmark, Flame,
+  ChevronDown, Landmark, Flame, Scale, Gauge,
 } from 'lucide-react';
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
@@ -41,11 +41,13 @@ import DealManagerLocal    from './modules/DealManagerLocal.jsx';
 import FxPricingValidator  from './modules/FxPricingValidator.jsx';
 import FxForward           from './modules/FxForward.jsx';
 import ICEBoard            from './modules/ICEBoard.jsx';
+import PositionBook         from './modules/PositionBook.jsx';
+import DealCockpit          from './modules/DealCockpit.jsx';
 
 const TAB_SECTION_MAP = {
-  advisor: 'main', 'deal-manager-agent': 'main', dashboard: 'main', market: 'main', curve: 'main',
+  advisor: 'main', 'deal-manager-agent': 'main', dashboard: 'main', position: 'main', market: 'main', curve: 'main',
   'ice-board': 'main',
-  deals: 'deals', 'new-deal': 'deals', lots: 'deals', optimizer: 'deals',
+  cockpit: 'deals', deals: 'deals', 'new-deal': 'deals', lots: 'deals', optimizer: 'deals',
   hedging: 'tools', pricing: 'tools', freight: 'tools', pnl: 'tools', lc: 'tools',
   risk: 'tools', 'fx-pricing': 'tools', 'fx-forward': 'tools', spreads: 'tools', rolling: 'tools',
   'platts-board': 'tools', platts: 'tools',
@@ -64,6 +66,7 @@ export default function TradingPlatform() {
   const [activeTab,    setActiveTab]    = useState('dashboard');
   const [deals,        setDeals]        = useState([]);
   const [editingDeal,  setEditingDeal]  = useState(null);
+  const [focusDealId,  setFocusDealId]  = useState('');
   const [loaded,       setLoaded]       = useState(false);
   const [marketPrices,  setMarketPrices]  = useState({ brent: '', wti: '', gasoil: '', dubai: '', jet: '' });
   const [plattsDataset, setPlattsDataset] = useState(() => {
@@ -192,6 +195,12 @@ export default function TradingPlatform() {
     });
   };
 
+  // Ouvre un module avec un deal pré-sélectionné (navigation deal-centrique).
+  const openDealIn = (tabId, dealId) => {
+    if (dealId) setFocusDealId(dealId);
+    navigateTo(tabId);
+  };
+
   // ── Auth handlers ─────────────────────────────────────────────
   const handleAuth = (user) => { setCurrentUser(user); navigateTo('dashboard'); };
 
@@ -246,6 +255,12 @@ export default function TradingPlatform() {
 
   const restoreDeals = (imported) => { setDeals(imported); };
 
+  // Mise à jour partielle d'un deal (statut depuis le cockpit, etc.)
+  const updateDealFields = (dealId, patch) => {
+    if (isViewer) { alert('Les utilisateurs Viewer ne peuvent pas modifier de deals.'); return; }
+    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, ...patch } : d));
+  };
+
   // ── Sub-module save handlers ──────────────────────────────────
   const setMarketPrice      = (key, val) => setMarketPrices(prev => ({ ...prev, [key]: val }));
   const saveFreight         = (dealId, freightData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: freightData } : d));
@@ -255,6 +270,14 @@ export default function TradingPlatform() {
   const savePnLFreight      = (dealId, freightAmount) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: { ...(d.freight || {}), totalFreight: freightAmount } } : d));
   const savePnL             = (dealId, pnlData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pnl: pnlData } : d));
   const saveFxHedge         = (dealId, fxData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, fxHedge: fxData } : d));
+  const saveLCCheck         = (dealId, lcData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, lcCheck: lcData } : d));
+  // Reporte le prix moyen pondéré des lots comme prix de la jambe du deal.
+  const pushDealLegPrice    = (dealId, price) => setDeals(ds => ds.map(d => {
+    if (d.id !== dealId) return d;
+    const p = String(Math.round(price * 100) / 100);
+    const leg = d.dealType === 'sell' ? { salePrice: p } : { purchasePrice: p };
+    return { ...d, estimatedPrice: p, ...leg };
+  }));
   const savePricingValidation = (dealId, pvData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pricingValidation: pvData } : d));
   const savePricing         = (dealId, pricingData) => setDeals(ds => ds.map(d => {
     if (d.id !== dealId) return d;
@@ -287,9 +310,11 @@ export default function TradingPlatform() {
     { id: 'advisor',            label: 'Conseiller',         icon: Bot,             section: 'main' },
     { id: 'deal-manager-agent', label: 'Gestionnaire deals', icon: Bot,             section: 'main' },
     { id: 'dashboard',          label: 'Tableau de bord',    icon: LayoutDashboard, section: 'main' },
+    { id: 'position',           label: 'Book de position',   icon: Scale,           section: 'main' },
     { id: 'market',    label: 'Marché temps réel', icon: Activity,        section: 'main' },
     { id: 'ice-board', label: 'ICE Futures',       icon: Flame,           section: 'main' },
     { id: 'curve',     label: 'Courbe à terme',    icon: Layers,          section: 'main' },
+    { id: 'cockpit',   label: 'Cockpit deal',      icon: Gauge,           section: 'deals' },
     { id: 'deals',     label: 'Mes deals',         icon: ScrollText,      section: 'deals' },
     ...(!isViewer ? [{ id: 'new-deal', label: 'Nouveau deal', icon: FilePlus2, section: 'deals' }] : []),
     { id: 'lots',      label: 'Lots & cargaisons', icon: Package,         section: 'deals' },
@@ -410,27 +435,33 @@ export default function TradingPlatform() {
           <div className="max-w-7xl mx-auto p-6 lg:p-8">
             {activeTab === 'advisor'            && <Advisor currentUser={currentUser} marketPrices={marketPrices} />}
             {activeTab === 'deal-manager-agent' && <DealManagerLocal deals={deals} marketPrices={marketPrices} plattsDataset={plattsDataset} />}
-            {activeTab === 'dashboard'          && <Dashboard deals={deals} goTo={navigateTo} marketPrices={marketPrices} setMarketPrice={setMarketPrice} />}
+            {activeTab === 'dashboard'          && <Dashboard deals={deals} goTo={navigateTo} marketPrices={marketPrices} setMarketPrice={setMarketPrice} openDeal={(id) => openDealIn('cockpit', id)} />}
+            {activeTab === 'position'           && <PositionBook deals={deals} marketPrices={marketPrices} setMarketPrice={setMarketPrice} />}
             {activeTab === 'market'    && <Market />}
             {activeTab === 'ice-board' && <ICEBoard />}
             {activeTab === 'curve'     && <ForwardCurve />}
-            {activeTab === 'deals'     && <DealsList deals={deals} onEdit={editDeal} onDelete={deleteDeal} onDuplicate={duplicateDeal} onImportDeals={importDeals} />}
+            {activeTab === 'cockpit'   && (
+              <DealCockpit deals={deals} marketPrices={marketPrices} initialDealId={focusDealId}
+                onOpenModule={openDealIn} onEdit={editDeal} isViewer={isViewer}
+                onUpdateStatus={(id, status) => updateDealFields(id, { status })} />
+            )}
+            {activeTab === 'deals'     && <DealsList deals={deals} onEdit={editDeal} onDelete={deleteDeal} onDuplicate={duplicateDeal} onImportDeals={importDeals} onOpen={(d) => openDealIn('cockpit', d.id)} />}
             {activeTab === 'new-deal' && !isViewer && (
               <NewDeal onSave={saveDeal} editingDeal={editingDeal}
                 onCancel={editingDeal ? () => { setEditingDeal(null); navigateTo('deals'); } : null} />
             )}
-            {activeTab === 'optimizer'  && <Optimizer deals={deals} />}
-            {activeTab === 'hedging'    && <Hedging deals={deals} onHedgeSaved={saveHedge} />}
-            {activeTab === 'pricing'    && <Pricing marketPrices={marketPrices} deals={deals} onPricingSaved={savePricing} />}
-            {activeTab === 'freight'    && <Freight deals={deals} onFreightSaved={saveFreight} />}
-            {activeTab === 'lots'       && <Lots deals={deals} onLotsUpdated={saveLots} />}
-            {activeTab === 'pnl'        && <PnL deals={deals} marketPrices={marketPrices} onFreightSaved={savePnLFreight} onPnLSaved={savePnL} />}
-            {activeTab === 'lc'         && <LCChecker />}
-            {activeTab === 'risk'       && <RiskMatrix deals={deals} onRiskSaved={saveRiskMatrix} />}
-            {activeTab === 'fx-pricing'  && <FxPricingValidator deals={deals} onPricingValidated={savePricingValidation} currentUser={currentUser} />}
-            {activeTab === 'fx-forward'  && <FxForward deals={deals} onFxSaved={saveFxHedge} />}
+            {activeTab === 'optimizer'  && <Optimizer deals={deals} initialDealId={focusDealId} />}
+            {activeTab === 'hedging'    && <Hedging deals={deals} onHedgeSaved={saveHedge} userId={currentUser.id} initialDealId={focusDealId} />}
+            {activeTab === 'pricing'    && <Pricing marketPrices={marketPrices} deals={deals} onPricingSaved={savePricing} initialDealId={focusDealId} />}
+            {activeTab === 'freight'    && <Freight deals={deals} onFreightSaved={saveFreight} initialDealId={focusDealId} />}
+            {activeTab === 'lots'       && <Lots deals={deals} onLotsUpdated={saveLots} onPushPrice={pushDealLegPrice} initialDealId={focusDealId} />}
+            {activeTab === 'pnl'        && <PnL deals={deals} marketPrices={marketPrices} onFreightSaved={savePnLFreight} onPnLSaved={savePnL} initialDealId={focusDealId} />}
+            {activeTab === 'lc'         && <LCChecker deals={deals} onLCSaved={saveLCCheck} initialDealId={focusDealId} />}
+            {activeTab === 'risk'       && <RiskMatrix deals={deals} onRiskSaved={saveRiskMatrix} initialDealId={focusDealId} />}
+            {activeTab === 'fx-pricing'  && <FxPricingValidator deals={deals} onPricingValidated={savePricingValidation} currentUser={currentUser} initialDealId={focusDealId} />}
+            {activeTab === 'fx-forward'  && <FxForward deals={deals} onFxSaved={saveFxHedge} initialDealId={focusDealId} />}
             {activeTab === 'spreads'    && <Spreads />}
-            {activeTab === 'rolling'    && <Rolling deals={deals} />}
+            {activeTab === 'rolling'    && <Rolling deals={deals} userId={currentUser.id} initialDealId={focusDealId} />}
             {activeTab === 'platts-board' && <PlattsBoard plattsDataset={plattsDataset} setMarketPrice={setMarketPrice} deals={deals} onPushToDeal={pushMopToDeal} />}
             {activeTab === 'platts'    && <PlattsImport setMarketPrice={setMarketPrice} marketPrices={marketPrices} onDatasetLoaded={setPlattsDataset} />}
             {activeTab === 'documents' && <Documents deals={deals} />}

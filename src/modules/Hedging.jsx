@@ -5,21 +5,9 @@ import { fmt, fmtUSD } from '../utils.js';
 import { Card, CardHeader, CardBody, Field, Input, Select, Button } from '../components/UI.jsx';
 import { TVAdvancedChart } from '../components/TradingViewWidgets.jsx';
 import { computeHedge, computeHedgePnL } from '../calc/hedgeCalc.js';
+import { rollTotalForDeal } from '../utils/rollStore.js';
 
-const ROLL_HISTORY_KEY = 'amko_roll_history';
-
-// Somme du roll cumulé (crédit +/coût −) des rolls enregistrés pour un deal donné.
-function rollTotalForDeal(dealId) {
-  if (!dealId) return 0;
-  try {
-    const hist = JSON.parse(localStorage.getItem(ROLL_HISTORY_KEY) || '[]');
-    return hist
-      .filter(e => e.linkedDeal === dealId)
-      .reduce((s, e) => s + (Number(e.totalRoll) || 0), 0);
-  } catch { return 0; }
-}
-
-export default function Hedging({ deals, onHedgeSaved }) {
+export default function Hedging({ deals, onHedgeSaved, userId, initialDealId }) {
   const [productKey,  setProductKey]  = useState('crude-bonny');
   const [contractKey, setContractKey] = useState('brn-full');
   const [quantity,    setQuantity]    = useState('');
@@ -33,6 +21,10 @@ export default function Hedging({ deals, onHedgeSaved }) {
   const [bankBroker,  setBankBroker]  = useState('');
   const [notes,       setNotes]       = useState('');
   const [savedMsg,    setSavedMsg]    = useState('');
+
+  useEffect(() => {
+    if (initialDealId && deals.some(d => d.id === initialDealId)) setLinkedDeal(initialDealId);
+  }, [initialDealId]);
 
   useEffect(() => {
     const productMarker = PRODUCTS[productKey]?.marker;
@@ -59,7 +51,7 @@ export default function Hedging({ deals, onHedgeSaved }) {
           setNotes(d.hedging.notes || '');
         }
         // Roll cumulé auto-importé depuis l'historique des rolls de ce deal
-        const rt = rollTotalForDeal(d.id);
+        const rt = rollTotalForDeal(userId, d.id);
         if (rt) setRollTotal(String(Math.round(rt)));
       }
     }

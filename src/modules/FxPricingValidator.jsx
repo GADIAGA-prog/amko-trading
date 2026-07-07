@@ -42,8 +42,12 @@ const BLANK_COSTS = {
 };
 
 // ─── Composant ────────────────────────────────────────────────────────────────
-export default function FxPricingValidator({ deals = [], onPricingValidated, currentUser }) {
+export default function FxPricingValidator({ deals = [], onPricingValidated, currentUser, initialDealId }) {
   const [dealId,       setDealId]       = useState('');
+
+  useEffect(() => {
+    if (initialDealId && deals.some(d => d.id === initialDealId)) setDealId(initialDealId);
+  }, [initialDealId]);
   const [product,      setProduct]      = useState('crude-bonny');
   const [quantityMT,   setQuantityMT]   = useState('');
   const [tolerance,    setTolerance]    = useState('5');
@@ -106,7 +110,8 @@ export default function FxPricingValidator({ deals = [], onPricingValidated, cur
       setPeriodEnd(pv.pricingPeriod?.endDate || '');
       setPremium(String(pv.premium || '0'));
       setPurchasePrice(String(pv.finalPhysicalPrice || ''));
-      setSalePrice(String(pv.economics?.saleAmountOriginalCurrency / n(d.quantity) || ''));
+      setSalePrice(n(d.quantity) > 0 && pv.economics?.saleAmountOriginalCurrency
+        ? String(pv.economics.saleAmountOriginalCurrency / n(d.quantity)) : '');
       setPurchaseCcy(pv.purchaseCurrency || 'USD');
       setSaleCcy(pv.saleCurrency || 'USD');
       setMarginCcy(pv.marginCurrency || 'USD');

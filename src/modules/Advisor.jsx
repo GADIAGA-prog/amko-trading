@@ -27,6 +27,7 @@ import { computeRoll }  from '../calc/rollCalc.js';
 import { computeSwapPoints, computeForwardFerme, computeOptionChange, computeHedgeScenarios } from '../calc/fxForwardCalc.js';
 import { PRODUCTS, CONTRACTS } from '../constants.js';
 import { Card, Button } from '../components/UI.jsx';
+import { getPlattsProductOptions, getLatestPlattsPrice } from '../utils/plattsStore.js';
 
 // =============================================================================
 // LECTURE DES DEALS DEPUIS LE LOCALSTORAGE
@@ -302,19 +303,22 @@ function makeToolExecutors(ctx) {
     lirePrixMarche: () => {
       let platts = null;
       try {
-        const hist = localStorage.getItem('amko_platts_history');
-        if (hist) {
-          const arr = JSON.parse(hist);
-          platts = arr && arr.length ? { lastImport: arr[0] } : null;
+        // Lit le vrai store Platts consolidé (même source que Platts Board / NewDeal)
+        const opts = getPlattsProductOptions();
+        if (opts.length) {
+          platts = opts.slice(0, 15)
+            .map(o => getLatestPlattsPrice(o.code))
+            .filter(Boolean)
+            .map(p => ({ code: p.code, description: p.description, price: p.price, date: p.date }));
         }
       } catch {
         platts = null;
       }
       return {
         marketPrices: marketPrices || null,
-        plattsLastImport: platts,
+        plattsLatest: platts,
         note: marketPrices
-          ? "Prix de référence de la plateforme (peuvent dater du dernier rafraîchissement)."
+          ? "Prix de référence de la plateforme (peuvent dater du dernier rafraîchissement). plattsLatest = derniers prix du Platts importé, en USD/MT."
           : "Aucun prix de référence disponible dans l'état de l'application.",
       };
     },

@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { RefreshCw, TrendingUp, TrendingDown, Calculator, Trash2, Save } from 'lucide-react';
 import { CONTRACTS } from '../constants.js';
 import { fmt, fmtUSD } from '../utils.js';
 import { Card, CardHeader, CardBody, Field, Input, Select, Button, Stat, Row } from '../components/UI.jsx';
 import { computeRoll } from '../calc/rollCalc.js';
+import { loadRollHistory, saveRollHistory } from '../utils/rollStore.js';
 
 // ── Rolling : explication métier ─────────────────────────────────
 // SHORT hedger (couvre un stock physique long) :
@@ -18,22 +19,11 @@ import { computeRoll } from '../calc/rollCalc.js';
 //   Contango → coût de roll (défavorable)
 //   Backwardation → crédit de roll (favorable)
 
-const ROLL_HISTORY_KEY = 'amko_roll_history';
-
-function loadRollHistory() {
-  try { const v = localStorage.getItem(ROLL_HISTORY_KEY); return v ? JSON.parse(v) : []; }
-  catch { return []; }
-}
-function saveRollHistory(h) {
-  try { localStorage.setItem(ROLL_HISTORY_KEY, JSON.stringify(h.slice(0, 50))); }
-  catch {}
-}
-
 const MONTHS = [
   'M+1 (proche)', 'M+2', 'M+3', 'M+4', 'M+5', 'M+6', 'M+7', 'M+8', 'M+9', 'M+10', 'M+11', 'M+12',
 ];
 
-export default function Rolling({ deals }) {
+export default function Rolling({ deals, userId, initialDealId }) {
   const [contractKey, setContractKey] = useState('brn-full');
   const [direction,   setDirection]   = useState('short');
   const [lots,        setLots]        = useState('');
@@ -43,7 +33,11 @@ export default function Rolling({ deals }) {
   const [priceFar,    setPriceFar]    = useState('');
   const [linkedDeal,  setLinkedDeal]  = useState('');
   const [notes,       setNotes]       = useState('');
-  const [history,     setHistory]     = useState(loadRollHistory);
+  const [history,     setHistory]     = useState(() => loadRollHistory(userId));
+
+  useEffect(() => {
+    if (initialDealId && deals.some(d => d.id === initialDealId)) setLinkedDeal(initialDealId);
+  }, [initialDealId]);
 
   const nLots = Number(lots)      || 0;
   const pNear = Number(priceNear) || 0;
@@ -97,13 +91,13 @@ export default function Rolling({ deals }) {
     };
     const next = [entry, ...history].slice(0, 50);
     setHistory(next);
-    saveRollHistory(next);
+    saveRollHistory(userId, next);
     setNotes('');
   };
 
   const deleteEntry = (id) => {
     const next = history.filter(e => e.id !== id);
-    setHistory(next); saveRollHistory(next);
+    setHistory(next); saveRollHistory(userId, next);
   };
 
   const colorClass = {
@@ -175,15 +169,15 @@ export default function Rolling({ deals }) {
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <Field label={`Prix ${fromMonth} ($/bbl)`}
+                <Field label={`Prix ${fromMonth} ($/${contract.unit})`}
                   hint="Prix actuel du contrat proche">
                   <Input type="number" step="0.01" value={priceNear}
-                    onChange={e => setPriceNear(e.target.value)} placeholder="Ex. 82.50" />
+                    onChange={e => setPriceNear(e.target.value)} placeholder={contract.unit === 'MT' ? 'Ex. 1085.00' : 'Ex. 82.50'} />
                 </Field>
-                <Field label={`Prix ${toMonth} ($/bbl)`}
+                <Field label={`Prix ${toMonth} ($/${contract.unit})`}
                   hint="Prix actuel du contrat lointain">
                   <Input type="number" step="0.01" value={priceFar}
-                    onChange={e => setPriceFar(e.target.value)} placeholder="Ex. 82.80" />
+                    onChange={e => setPriceFar(e.target.value)} placeholder={contract.unit === 'MT' ? 'Ex. 1090.00' : 'Ex. 82.80'} />
                 </Field>
               </div>
 
@@ -222,7 +216,7 @@ export default function Rolling({ deals }) {
                   <div className="text-xs uppercase font-semibold text-slate-600 dark:text-slate-400">Structure du marché</div>
                   <div className="text-xl font-bold text-slate-900 dark:text-slate-100 mt-1">{structure}</div>
                   <div className="text-sm text-slate-600 dark:text-slate-400 mt-0.5">
-                    Roll spread : <b>{rollSpread >= 0 ? '+' : ''}{fmt(rollSpread, 2)} $/bbl</b>
+                    Roll spread : <b>{rollSpread >= 0 ? '+' : ''}{fmt(rollSpread, 2)} $/{contract.unit}</b>
                     &nbsp;({fromMonth} → {toMonth})
                   </div>
                 </div>
@@ -251,7 +245,7 @@ export default function Rolling({ deals }) {
                     {isCredit ? '+' : ''}{fmtUSD(totalRoll, 0)}
                   </div>
                   <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-                    {fmt(netPerBbl, 2)} $/bbl × {fmt(totalBbl, 0)} {contract.unit}
+                    {fmt(netPerBbl, 2)} $/{contract.unit} × {fmt(totalBbl, 0)} {contract.unit}
                   </div>
                 </div>
 
@@ -278,7 +272,7 @@ export default function Rolling({ deals }) {
         <Card>
           <CardHeader icon={RefreshCw} title={`Historique des rolls (${history.length})`}
             action={
-              <Button variant="outline" size="sm" onClick={() => { setHistory([]); saveRollHistory([]); }}>
+              <Button variant="outline" size="sm" onClick={() => { setHistory([]); saveRollHistory(userId, []); }}>
                 Tout effacer
               </Button>
             }

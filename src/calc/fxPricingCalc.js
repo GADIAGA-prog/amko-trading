@@ -199,16 +199,16 @@ export function computeArbitrage({ purchasePrice, salePrice, quantityMT, marginC
   if (recommendedHedgeCcy === 'USD' && marginCcy === 'XOF') recommendedFwdRate = safeRate(fx.forwardUSDXOF, fx.spotUSDXOF);
   if (recommendedHedgeCcy === 'EUR' && marginCcy === 'XOF') recommendedFwdRate = safeRate(fx.forwardEURXOF, fx.spotEURXOF);
 
-  // Gain/perte FX : comparaison de la meilleure combinaison en forward vs spot
-  const bestSpot    = results.reduce((m, r) => r.netMarginSpot > m ? r.netMarginSpot : m, -Infinity);
-  const fxGainLoss  = best.netMarginForward - bestSpot;
+  // Gain/perte FX : forward vs spot À COMBINAISON CONSTANTE (la meilleure).
+  // Comparer deux combinaisons différentes mêlerait effet devise de facturation et effet forward.
+  const fxGainLoss  = best.netMarginForward - best.netMarginSpot;
   const fxGainLossPerMT = qty > 0 ? fxGainLoss / qty : 0;
 
   // Recommandation textuelle
   let recommendation = '';
-  if (best.netMarginForward > bestSpot) {
+  if (fxGainLoss > 0) {
     recommendation = `Le forward améliore la marge. Couvrir l'exposition ${recommendedHedgeCcy}/${marginCcy} au taux forward saisi.`;
-  } else if (best.netMarginForward < bestSpot && best.netMarginForward > 0) {
+  } else if (fxGainLoss < 0 && best.netMarginForward > 0) {
     recommendation = `Le forward réduit légèrement la marge attendue mais sécurise contre une dégradation FX. Recommandé si l'objectif est la protection.`;
   } else if (best.netMarginForward <= 0) {
     recommendation = `NO-GO : la marge forward est négative. Renégocier le prix, la prime ou le fret.`;
@@ -231,35 +231,52 @@ export function computeArbitrage({ purchasePrice, salePrice, quantityMT, marginC
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SCÉNARIOS DE STRESS FX (±1 %, ±3 %, ±5 %)
-// On choque le taux FX entre la devise de vente et la devise de marge.
+// On choque TOUTES les paires qui portent une exposition : jambe de vente
+// (saleCcy/marginCcy) ET jambe d'achat (purchaseCcy/marginCcy). Couvre les 6
+// directions USD/EUR/XOF ; si tout est dans la même devise, aucune paire n'est
+// choquée (pas d'exposition FX) et fxExposed = false.
 // ─────────────────────────────────────────────────────────────────────────────
-function applyShock(fx, saleCcy, marginCcy, pct) {
+const PAIR_RATE_KEYS = {
+  EURUSD: ['spotEURUSD', 'forwardEURUSD', 1.08],
+  USDXOF: ['spotUSDXOF', 'forwardUSDXOF', 600],
+  EURXOF: ['spotEURXOF', 'forwardEURXOF', 655.957],
+};
+
+function pairKeyFor(ccyA, ccyB) {
+  const pair = [ccyA, ccyB].sort().join('');
+  return PAIR_RATE_KEYS[pair] ? pair : null;
+}
+
+function applyShock(fx, purchaseCcy, saleCcy, marginCcy, pct) {
   const f = 1 + pct / 100;
   const shocked = { ...fx };
-  // Choque la paire pertinente
-  if (saleCcy === 'USD' && marginCcy === 'EUR') {
-    shocked.spotEURUSD    = (Number(fx.spotEURUSD)    || 1.08) * f;
-    shocked.forwardEURUSD = (Number(fx.forwardEURUSD) || fx.spotEURUSD || 1.08) * f;
-  } else if (saleCcy === 'XOF' && marginCcy === 'USD') {
-    shocked.spotUSDXOF    = (Number(fx.spotUSDXOF)    || 600) * f;
-    shocked.forwardUSDXOF = (Number(fx.forwardUSDXOF) || fx.spotUSDXOF || 600) * f;
-  } else if (saleCcy === 'EUR' && marginCcy === 'USD') {
-    shocked.spotEURUSD    = (Number(fx.spotEURUSD)    || 1.08) * f;
-    shocked.forwardEURUSD = (Number(fx.forwardEURUSD) || fx.spotEURUSD || 1.08) * f;
-  } else if (saleCcy === 'XOF' && marginCcy === 'EUR') {
-    shocked.spotEURXOF    = (Number(fx.spotEURXOF)    || 655.957) * f;
-    shocked.forwardEURXOF = (Number(fx.forwardEURXOF) || fx.spotEURXOF || 655.957) * f;
-  }
-  return shocked;
+  let exposed = false;
+
+  const bump = (ccyA, ccyB) => {
+    if (ccyA === ccyB) return;
+    const pair = pairKeyFor(ccyA, ccyB);
+    if (!pair) return;
+    const [spotKey, fwdKey, dflt] = PAIR_RATE_KEYS[pair];
+    // Calculé depuis fx (base), donc idempotent si les deux jambes partagent la même paire.
+    shocked[spotKey] = (Number(fx[spotKey]) || dflt) * f;
+    shocked[fwdKey]  = (Number(fx[fwdKey])  || Number(fx[spotKey]) || dflt) * f;
+    exposed = true;
+  };
+
+  bump(saleCcy, marginCcy);
+  bump(purchaseCcy, marginCcy);
+  return { shocked, exposed };
 }
 
 export function computeScenarios({ purchasePrice, salePrice, quantityMT, purchaseCcy, saleCcy, marginCcy, fx, costs }) {
   const shocks = [-5, -3, -1, 1, 3, 5];
   const scenarioResults = {};
+  let fxExposed = false;
 
   shocks.forEach(pct => {
-    const shockedFx = applyShock(fx, saleCcy, marginCcy, pct);
-    const eco = computeEconomics({ purchasePrice, salePrice, quantityMT, purchaseCcy, saleCcy, marginCcy, fx: shockedFx, costs });
+    const { shocked, exposed } = applyShock(fx, purchaseCcy, saleCcy, marginCcy, pct);
+    fxExposed = fxExposed || exposed;
+    const eco = computeEconomics({ purchasePrice, salePrice, quantityMT, purchaseCcy, saleCcy, marginCcy, fx: shocked, costs });
     const key = `fx${pct > 0 ? 'Plus' : 'Minus'}${Math.abs(pct)}Percent`;
     scenarioResults[key] = Math.round(eco.netMarginForward * 100) / 100;
   });
@@ -269,6 +286,7 @@ export function computeScenarios({ purchasePrice, salePrice, quantityMT, purchas
     ...scenarioResults,
     worstCaseMargin: Math.min(...margins),
     bestCaseMargin:  Math.max(...margins),
+    fxExposed, // false = aucune exposition FX (tout dans la devise de marge)
   };
 }
 
