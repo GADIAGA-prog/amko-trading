@@ -161,9 +161,22 @@ export default function FxForward({ deals = [], onFxSaved, initialDealId }) {
       if (fx.rateFor != null)   setRateFor(String(fx.rateFor));
       if (fx.rateDom != null)   setRateDom(String(fx.rateDom));
       if (fx.strikeRate != null) setStrikeRate(String(fx.strikeRate));
-    } else if (d.estimatedPrice && d.quantity && !notional) {
+    } else {
       // Pré-remplir le notionnel USD depuis le deal si rien n'est saisi
-      setNotional(String(Math.round(Number(d.estimatedPrice) * Number(d.quantity))));
+      if (d.estimatedPrice && d.quantity && !notional) {
+        setNotional(String(Math.round(Number(d.estimatedPrice) * Number(d.quantity))));
+      }
+      // Pont avec FX Pricing : reprendre le taux spot déjà saisi dans la validation
+      const pvFx = d.pricingValidation?.fx;
+      if (pvFx && !spotRate) {
+        const pick = {
+          'USD/XOF': pvFx.spotUSDXOF,
+          'EUR/XOF': pvFx.spotEURXOF,
+          'EUR/USD': pvFx.spotEURUSD,
+          'USD/EUR': pvFx.spotEURUSD > 0 ? 1 / pvFx.spotEURUSD : 0,
+        }[`${ccyFor}/${ccyDom}`];
+        if (pick > 0) setSpotRate(String(Math.round(pick * 10000) / 10000));
+      }
     }
   }, [linkedDeal, deals]);
 

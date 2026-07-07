@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Gauge, CheckCircle2, AlertTriangle, XCircle, Circle, Minus, Pencil,
-  CalendarClock, BellRing, Wallet, ArrowRight, ChevronRight,
+  CalendarClock, BellRing, Wallet, ArrowRight, ChevronRight, Printer,
 } from 'lucide-react';
 import { PRODUCTS } from '../constants.js';
 import { fmt, fmtUSD } from '../utils.js';
@@ -11,6 +11,7 @@ import {
   dealTimeline, dealAlerts, dealVerdict,
 } from '../calc/dealLifecycle.js';
 import { analyzeDealPosition } from '../calc/positionCalc.js';
+import { printDealTicket } from '../utils/dealTicket.js';
 
 // ─── Styles d'état de checklist ───────────────────────────────────────────────
 const STATE_UI = {
@@ -84,10 +85,17 @@ export default function DealCockpit({
             Vue 360° — cycle de vie, checklist « bon deal », échéances, alertes et économie du deal
           </p>
         </div>
-        {deal && onEdit && !isViewer && (
-          <Button variant="outline" size="sm" icon={Pencil} onClick={() => onEdit(deal)}>
-            Éditer le deal
-          </Button>
+        {deal && (
+          <div className="flex gap-2">
+            <Button variant="gold" size="sm" icon={Printer} onClick={() => printDealTicket(deal)}>
+              Deal ticket
+            </Button>
+            {onEdit && !isViewer && (
+              <Button variant="outline" size="sm" icon={Pencil} onClick={() => onEdit(deal)}>
+                Éditer le deal
+              </Button>
+            )}
+          </div>
         )}
       </div>
 

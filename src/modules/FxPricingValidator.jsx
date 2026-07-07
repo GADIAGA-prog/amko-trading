@@ -131,6 +131,14 @@ export default function FxPricingValidator({ deals = [], onPricingValidated, cur
       if (dealBuy)  setPurchasePrice(String(dealBuy));
       if (dealSell) setSalePrice(String(dealSell));
       if (d.freight?.totalFreight) setCostField('freightCost', String(Math.round(d.freight.totalFreight)));
+      // Pont avec le P&L validé : reprendre les coûts déjà chiffrés
+      if (d.pnl) {
+        if (d.pnl.inspection) setCostField('inspectionCost',    String(Math.round(d.pnl.inspection)));
+        if (d.pnl.insurance)  setCostField('insuranceCost',     String(Math.round(d.pnl.insurance)));
+        if (d.pnl.financing)  setCostField('financingCost',     String(Math.round(d.pnl.financing)));
+        if (d.pnl.demurrage)  setCostField('demurrageEstimate', String(Math.round(d.pnl.demurrage)));
+        if (d.pnl.other)      setCostField('otherCosts',        String(Math.round(d.pnl.other)));
+      }
       if (d.pricing) {
         setAvgPrice(String(d.pricing.markerPrice || ''));
         setPremium(String(d.pricing.traderMargin || '0'));

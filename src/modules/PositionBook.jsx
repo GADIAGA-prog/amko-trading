@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from 'react';
+import * as XLSX from 'xlsx';
 import {
   Layers, TrendingUp, TrendingDown, AlertTriangle, Anchor, Building2,
-  Scale, DollarSign, ShieldCheck, RefreshCw,
+  Scale, DollarSign, ShieldCheck, RefreshCw, FileSpreadsheet,
 } from 'lucide-react';
 import { PRODUCTS } from '../constants.js';
 import { fmt, fmtUSD } from '../utils.js';
-import { Card, CardHeader, CardBody, Stat, Field, Input } from '../components/UI.jsx';
+import { Card, CardHeader, CardBody, Stat, Field, Input, Button } from '../components/UI.jsx';
 import { computeBook, resolveRefMT } from '../calc/positionCalc.js';
 
 const MARKER_LABEL = {
@@ -49,6 +50,72 @@ export default function PositionBook({ deals = [], marketPrices = {}, setMarketP
 
   const hasDeals = book.perDeal.length > 0;
 
+  // ── Export Excel : synthèse + position marker + produits + détail deals ──
+  const exportExcel = () => {
+    const s2 = book.summary;
+    const wb = XLSX.utils.book_new();
+
+    const synthese = XLSX.utils.aoa_to_sheet([
+      ['AMKO Trading — Book de position', new Date().toISOString().slice(0, 10)],
+      [],
+      ['Deals actifs', s2.dealCount],
+      ['Position nette (MT)', Math.round(s2.netMT)],
+      ['Long brut (MT)', Math.round(s2.grossLongMT)],
+      ['Short brut (MT)', Math.round(s2.grossShortMT)],
+      ['Notional book ($)', Math.round(s2.notional)],
+      ['Taux de couverture (%)', Math.round(s2.bookCoverPct)],
+      ['Exposition ouverte (bbl)', Math.round(s2.totalOpenBbl)],
+      ['P&L validé ($)', Math.round(s2.bookedPnl)],
+      ['MtM latent ($)', Math.round(s2.latentMtm)],
+      ['P&L total estimé ($)', Math.round(s2.totalPnl)],
+      ['Deals non couverts', s2.unhedgedCount],
+    ]);
+    XLSX.utils.book_append_sheet(wb, synthese, 'Synthèse');
+
+    const markers = XLSX.utils.aoa_to_sheet([
+      ['Marker', 'Long (bbl)', 'Short (bbl)', 'Physique net (bbl)', 'Hedge (bbl)', 'Ouvert net (bbl)', '≈ Lots'],
+      ...book.markers.map(m => [
+        MARKER_LABEL[m.marker] || m.marker, Math.round(m.longBbl), Math.round(m.shortBbl),
+        Math.round(m.physBbl), Math.round(m.hedgedBbl), Math.round(m.netOpenBbl),
+        m.netOpenLots != null ? Math.round(m.netOpenLots * 10) / 10 : '',
+      ]),
+    ]);
+    XLSX.utils.book_append_sheet(wb, markers, 'Position marker');
+
+    const products = XLSX.utils.aoa_to_sheet([
+      ['Produit', 'Achat (MT)', 'Vente (MT)', 'Net (MT)', 'Couverture (%)', 'Notional ($)', 'MtM latent ($)'],
+      ...book.products.map(p => [
+        p.name, Math.round(p.longMT), Math.round(p.shortMT), Math.round(p.physMT),
+        Math.round(p.coverPct), Math.round(p.notional), p.hasMtm ? Math.round(p.mtm) : '',
+      ]),
+    ]);
+    XLSX.utils.book_append_sheet(wb, products, 'Produits');
+
+    const dealsSheet = XLSX.utils.aoa_to_sheet([
+      ['Deal', 'Sens', 'Contrepartie', 'Produit', 'Qté (MT)', 'Prix deal ($/MT)', 'Marché ($/MT)',
+       'Hedgé', 'Lots', 'Ouvert (bbl)', 'MtM ($)', 'P&L validé ($)', 'Contribution ($)', 'Statut'],
+      ...book.perDeal.map(p => [
+        p.id, p.dealType === 'buy' ? 'Achat' : 'Vente', p.counterparty, p.productName,
+        Math.round(p.qtyMT), p.legPrice || '', p.refPrice != null ? Math.round(p.refPrice * 100) / 100 : '',
+        p.hedged ? 'Oui' : 'Non', p.hedgeLots || '', Math.round(p.hedged ? p.netOpenBbl : p.physBbl),
+        p.mtm != null ? Math.round(p.mtm) : '', p.hasBooked ? Math.round(p.booked) : '',
+        Math.round(p.contribution), p.status,
+      ]),
+    ]);
+    XLSX.utils.book_append_sheet(wb, dealsSheet, 'Deals');
+
+    const cps = XLSX.utils.aoa_to_sheet([
+      ['Contrepartie', 'Deals', 'Achat (MT)', 'Vente (MT)', 'Notional ($)', '% du book'],
+      ...book.counterparties.map(c => [
+        c.name, c.deals, Math.round(c.longMT), Math.round(c.shortMT), Math.round(c.notional),
+        s2.notional > 0 ? Math.round(c.notional / s2.notional * 100) : 0,
+      ]),
+    ]);
+    XLSX.utils.book_append_sheet(wb, cps, 'Contreparties');
+
+    XLSX.writeFile(wb, `amko-book-position-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -60,11 +127,16 @@ export default function PositionBook({ deals = [], marketPrices = {}, setMarketP
             Position nette, exposition ouverte après couverture et P&amp;L consolidé sur l'ensemble du portefeuille
           </p>
         </div>
-        <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none">
-          <input type="checkbox" checked={includeClosed} onChange={e => setIncludeClosed(e.target.checked)}
-            className="rounded border-slate-300 dark:border-slate-600" />
-          Inclure les deals soldés
-        </label>
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+            <input type="checkbox" checked={includeClosed} onChange={e => setIncludeClosed(e.target.checked)}
+              className="rounded border-slate-300 dark:border-slate-600" />
+            Inclure les deals soldés
+          </label>
+          <Button variant="primary" size="sm" icon={FileSpreadsheet} disabled={!hasDeals} onClick={exportExcel}>
+            Exporter Excel
+          </Button>
+        </div>
       </div>
 
       {!hasDeals ? (
