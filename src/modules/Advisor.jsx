@@ -555,7 +555,7 @@ export default function Advisor({ currentUser, marketPrices }) {
       <div>
         <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">Conseiller AMKO</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Agent IA de trading physique — lecture seule, explique chaque raisonnement
+          Conseiller de trading physique — lecture seule, explique chaque raisonnement
         </p>
       </div>
 
@@ -582,7 +582,7 @@ export default function Advisor({ currentUser, marketPrices }) {
               <div className="space-y-3">
                 <p className="text-sm text-slate-500 dark:text-slate-400">
                   Pose une question sur un deal, une couverture, une marge, un roll, une LC, ton book…
-                  L'agent lit tes données réelles (deals, cockpit, position) et explique son raisonnement.
+                  Le Conseiller lit tes données réelles (deals, cockpit, position) et explique son raisonnement.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {SUGGESTIONS.map(s => (
@@ -618,7 +618,7 @@ export default function Advisor({ currentUser, marketPrices }) {
             })}
             {busy && (
               <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                <Loader2 className="w-4 h-4 animate-spin" /> L'agent réfléchit…
+                <Loader2 className="w-4 h-4 animate-spin" /> Le Conseiller réfléchit…
               </div>
             )}
           </div>

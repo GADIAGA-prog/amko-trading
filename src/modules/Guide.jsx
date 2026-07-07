@@ -44,7 +44,7 @@ const NOTICE_HTML = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
   <div>2. Démarrage, comptes et rôles</div>
   <div>3. Les modules et le cycle de vie d'un deal</div>
   <div>4. Exemple complet de A à Z (Vitol → Lomé)</div>
-  <div>5. Le Conseiller IA (chat)</div>
+  <div>5. Le Conseiller (chat)</div>
   <div>6. Données, sauvegardes et exports</div>
   <div>7. Dépannage rapide</div>
 </div>
@@ -85,7 +85,7 @@ const NOTICE_HTML = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
   <tr><td><b>P&amp;L</b></td><td>Marge à 3 niveaux : brute → après financement → nette (hedge + FX inclus).</td><td><i>pnl</i></td></tr>
   <tr><td><b>Book de position</b></td><td>Position nette, exposition après hedge, MtM, P&amp;L consolidé, export Excel.</td><td>—</td></tr>
   <tr><td><b>Blotter / Journal</b></td><td>Piste d'audit horodatée de toutes les actions, export CSV.</td><td>—</td></tr>
-  <tr><td><b>Conseiller</b></td><td>Chat IA en lecture seule sur vos données réelles (voir §5).</td><td>—</td></tr>
+  <tr><td><b>Conseiller</b></td><td>Chat en lecture seule sur vos données réelles (voir §5).</td><td>—</td></tr>
 </table>
 
 <h2>4. Exemple complet de A à Z — achat Vitol, revente Lomé</h2>
@@ -157,13 +157,13 @@ Rappel XOF : la parité EUR/XOF est fixe (655,957) — le vrai risque est EUR/US
 
 <div class="step"><b class="t">Étape Q — Vie du deal jusqu'au solde.</b> Avancez le statut depuis le cockpit au fil des événements : <b>Financé</b> (LC ouverte) → <b>Chargé</b> (B/L émis) → <b>Déchargé</b> (livraison Lomé) → encaissement (l'échéancier estime la date : B/L + 30 j ≈ <span class="val">17/06/2026</span>, alerte automatique si dépassée) → <b>Soldé</b>. Terminez par une <b>sauvegarde JSON</b>.</div>
 
-<h2>5. Le Conseiller IA (chat)</h2>
+<h2>5. Le Conseiller (chat)</h2>
 <ul>
   <li>Le Conseiller lit <b>vos données réelles</b> (deals, cockpit, book, prix, Platts) via des outils en <b>lecture seule</b> — il ne modifie jamais rien, il recommande et explique.</li>
   <li><b>Professeur intégré :</b> il explique toutes les notions de la plateforme à partir du glossaire officiel (~50 notions : MOP, basis risk, contango, Worldscale, démurrage, LC/MT700/UCP 600, points de terme, P&amp;L 3 niveaux…) — définition, usage dans AMKO, exemple chiffré, pièges. Demandez simplement <i>« c'est quoi… ? »</i>.</li>
   <li><b>Conseil selon le marché :</b> il analyse la tendance des cotations Platts importées (variation 5/20 séances, volatilité), la croise avec votre exposition ouverte et chiffre l'impact par scénario avant de recommander (hedger N lots, rouler, repricer, couvrir le change… ou ne rien faire).</li>
   <li>Exemples de questions efficaces : <i>« Conseille-moi selon le marché actuel »</i> · <i>« Explique-moi le basis risk avec un exemple »</i> · <i>« Analyse mon book de position »</i> · <i>« Que manque-t-il au deal D… pour signer ? »</i> · <i>« Compare forward et option pour couvrir 18 M USD/XOF sur 42 jours »</i>.</li>
-  <li>Donnez l'ID du deal quand vous le connaissez ; sinon l'agent liste vos deals lui-même. Pour un conseil marché pertinent, importez le Platts du jour au préalable.</li>
+  <li>Donnez l'ID du deal quand vous le connaissez ; sinon le Conseiller liste vos deals lui-même. Pour un conseil marché pertinent, importez le Platts du jour au préalable.</li>
   <li><b>Prérequis :</b> le chat passe par l'API du déploiement — utilisez la version en ligne (Vercel). En local pur, le reste de la plateforme fonctionne, pas le chat.</li>
 </ul>
 
