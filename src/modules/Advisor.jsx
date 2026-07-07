@@ -18,7 +18,7 @@
 // -----------------------------------------------------------------------------
 
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot, User, Wrench } from 'lucide-react';
+import { Send, Loader2, Bot, User, Wrench, Trash2 } from 'lucide-react';
 import { SYSTEM_PROMPT, TOOLS } from '../agentConfig.js';
 import { analyzeDeal }  from '../calc/optimizerCalc.js';
 import { computePnL }   from '../calc/pnlCalc.js';
@@ -28,6 +28,8 @@ import { computeSwapPoints, computeForwardFerme, computeOptionChange, computeHed
 import { PRODUCTS, CONTRACTS } from '../constants.js';
 import { Card, Button } from '../components/UI.jsx';
 import { getPlattsProductOptions, getLatestPlattsPrice } from '../utils/plattsStore.js';
+import { buildChecklist, dealVerdict, dealAlerts, dealTimeline } from '../calc/dealLifecycle.js';
+import { computeBook } from '../calc/positionCalc.js';
 
 // =============================================================================
 // LECTURE DES DEALS DEPUIS LE LOCALSTORAGE
@@ -128,6 +130,14 @@ function makeToolExecutors(ctx) {
     calculerPnL: ({ dealId }) => {
       const deal = findDeal(userId, dealId);
       if (!deal) return { error: `Aucun deal trouvé avec l'id ${dealId}.` };
+      // Si un P&L a été validé dans le module P&L, c'est LA source de vérité.
+      if (deal.pnl) {
+        return {
+          dealId,
+          source: 'P&L validé dans le module P&L (3 niveaux, coûts complets, hedge et FX inclus)',
+          ...deal.pnl,
+        };
+      }
       const product  = PRODUCTS[deal.product];
       const bblPerMT = product ? product.bblPerMT : null;
       if (bblPerMT == null)
@@ -299,6 +309,48 @@ function makeToolExecutors(ctx) {
       };
     },
 
+    // ── lireCockpitDeal (réutilise dealLifecycle — source de vérité Cockpit) ─
+    lireCockpitDeal: ({ dealId }) => {
+      const deal = findDeal(userId, dealId);
+      if (!deal) return { error: `Aucun deal trouvé avec l'id ${dealId}.` };
+      const checklist = buildChecklist(deal);
+      const alerts    = dealAlerts(deal);
+      const verdict   = dealVerdict(checklist, alerts);
+      return {
+        dealId,
+        statut: deal.status || 'open',
+        scoreCompletude: checklist.score,
+        compteurs: checklist.counts,
+        verdict,
+        aTraiter: checklist.items
+          .filter(i => i.state === 'warn' || i.state === 'missing' || i.state === 'bad')
+          .map(i => ({ point: i.label, etat: i.state, detail: i.detail, module: i.tab })),
+        alertes: alerts,
+        echeancier: dealTimeline(deal),
+      };
+    },
+
+    // ── lireBookPosition (réutilise computeBook — source de vérité Book) ─────
+    lireBookPosition: () => {
+      const deals = loadDeals(userId);
+      if (!deals.length) return { error: 'Aucun deal dans le portefeuille.' };
+      const book = computeBook(deals, marketPrices || {}, {});
+      return {
+        synthese: book.summary,
+        parMarker: book.markers.map(m => ({
+          marker: m.marker,
+          physiqueNetBbl: Math.round(m.physBbl),
+          hedgeBbl: Math.round(m.hedgedBbl),
+          ouvertNetBbl: Math.round(m.netOpenBbl),
+          lotsEquivalents: m.netOpenLots != null ? Math.round(m.netOpenLots * 10) / 10 : null,
+        })),
+        parContrepartie: book.counterparties.map(c => ({
+          nom: c.name, deals: c.deals, notionalUSD: Math.round(c.notional),
+        })),
+        note: 'MtM basé sur les prix de référence saisis (Dashboard / Book de position). Si un prix manque, le MtM du produit est absent.',
+      };
+    },
+
     // ── lirePrixMarche ───────────────────────────────────────────────────────
     lirePrixMarche: () => {
       let platts = null;
@@ -361,8 +413,17 @@ export default function Advisor({ currentUser, marketPrices }) {
 
   const executors = makeToolExecutors({ userId, marketPrices });
 
-  async function send() {
-    const text = input.trim();
+  const SUGGESTIONS = [
+    'Analyse mon book de position : exposition résiduelle et priorités',
+    'Quel deal a le plus faible score de complétude et que manque-t-il ?',
+    'Vérifie mes couvertures : suis-je bien hedgé sur chaque deal ?',
+    'Explique-moi le verdict GO/NO-GO de mon dernier deal',
+  ];
+
+  const reset = () => { setHistory([]); setView([]); setError(null); };
+
+  async function send(presetText) {
+    const text = (presetText ?? input).trim();
     if (!text || busy) return;
     setError(null);
     setInput('');
@@ -417,7 +478,12 @@ export default function Advisor({ currentUser, marketPrices }) {
       }
       setHistory(convo);
     } catch (e) {
-      setError(e.message);
+      const msg = String(e.message || '');
+      if (/404|Failed to fetch|NetworkError/i.test(msg)) {
+        setError("Le Conseiller passe par l'API /api/chat, disponible uniquement sur le déploiement Vercel (ou via « vercel dev » en local). Ouvrez la version en ligne de la plateforme pour utiliser le chat.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setBusy(false);
     }
@@ -438,18 +504,34 @@ export default function Advisor({ currentUser, marketPrices }) {
           <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-700">
             <Bot className="w-5 h-5 text-blue-700 dark:text-blue-400" />
             <span className="font-semibold text-slate-900 dark:text-slate-100">Conseiller AMKO</span>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              lecture seule · explique chaque choix · accès à tes deals
+            <span className="text-xs text-slate-500 dark:text-slate-400 flex-1">
+              lecture seule · explique chaque choix · accès à tes deals, cockpits et book
             </span>
+            {view.length > 0 && (
+              <button onClick={reset} title="Nouvelle conversation"
+                className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition">
+                <Trash2 className="w-3.5 h-3.5" /> Effacer
+              </button>
+            )}
           </div>
 
           {/* Messages */}
           <div ref={scrollRef} className="flex-1 overflow-y-auto py-4 space-y-3">
             {view.length === 0 && (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Pose une question sur un deal, une couverture, une marge, un roll,
-                une LC… L'agent lit tes données et explique son raisonnement.
-              </p>
+              <div className="space-y-3">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  Pose une question sur un deal, une couverture, une marge, un roll, une LC, ton book…
+                  L'agent lit tes données réelles (deals, cockpit, position) et explique son raisonnement.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {SUGGESTIONS.map(s => (
+                    <button key={s} onClick={() => send(s)} disabled={busy}
+                      className="px-3 py-1.5 rounded-full text-xs bg-slate-100 hover:bg-blue-100 dark:bg-slate-800 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition text-left">
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
             {view.map((m, i) => {
               if (m.role === 'tool')

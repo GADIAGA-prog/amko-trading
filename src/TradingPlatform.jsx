@@ -4,7 +4,7 @@ import {
   DollarSign, Anchor, BarChart3, FileCheck2, ShieldAlert, Globe,
   Activity, Layers, Lightbulb, Users, User, LogOut, Moon, Sun,
   FileSpreadsheet, RefreshCw, ClipboardList, Zap, Package, Bot, ShieldCheck,
-  ChevronDown, Landmark, Flame, Scale, Gauge, History,
+  ChevronDown, Landmark, Scale, Gauge, History, BookOpen,
 } from 'lucide-react';
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
@@ -19,10 +19,8 @@ import MyProfile       from './auth/MyProfile.jsx';
 
 import Dashboard    from './modules/Dashboard.jsx';
 import Market       from './modules/Market.jsx';
-import ForwardCurve from './modules/ForwardCurve.jsx';
 import NewDeal      from './modules/NewDeal.jsx';
 import DealsList    from './modules/DealsList.jsx';
-import Optimizer    from './modules/Optimizer.jsx';
 import Hedging      from './modules/Hedging.jsx';
 import Freight      from './modules/Freight.jsx';
 import Pricing      from './modules/Pricing.jsx';
@@ -30,30 +28,27 @@ import PnL          from './modules/PnL.jsx';
 import LCChecker    from './modules/LCChecker.jsx';
 import RiskMatrix   from './modules/RiskMatrix.jsx';
 import Resources     from './modules/Resources.jsx';
-import Spreads       from './modules/Spreads.jsx';
-import PlattsImport  from './modules/PlattsImport.jsx';
+import PlattsImport  from './modules/PlattsImportDynamic.jsx';
 import PlattsBoard   from './modules/PlattsBoard.jsx';
 import Rolling       from './modules/Rolling.jsx';
 import Documents     from './modules/Documents.jsx';
 import Lots             from './modules/Lots.jsx';
 import Advisor          from './modules/Advisor.jsx';
-import DealManagerLocal    from './modules/DealManagerLocal.jsx';
 import FxPricingValidator  from './modules/FxPricingValidator.jsx';
 import FxForward           from './modules/FxForward.jsx';
-import ICEBoard            from './modules/ICEBoard.jsx';
 import PositionBook         from './modules/PositionBook.jsx';
 import DealCockpit          from './modules/DealCockpit.jsx';
 import Blotter              from './modules/Blotter.jsx';
+import Guide                from './modules/Guide.jsx';
 import { logAction }        from './utils/auditLog.js';
 
 const TAB_SECTION_MAP = {
-  advisor: 'main', 'deal-manager-agent': 'main', dashboard: 'main', position: 'main', market: 'main', curve: 'main',
-  'ice-board': 'main',
-  cockpit: 'deals', deals: 'deals', 'new-deal': 'deals', lots: 'deals', optimizer: 'deals', blotter: 'deals',
+  advisor: 'main', dashboard: 'main', position: 'main', market: 'main',
+  cockpit: 'deals', deals: 'deals', 'new-deal': 'deals', lots: 'deals', blotter: 'deals',
   hedging: 'tools', pricing: 'tools', freight: 'tools', pnl: 'tools', lc: 'tools',
-  risk: 'tools', 'fx-pricing': 'tools', 'fx-forward': 'tools', spreads: 'tools', rolling: 'tools',
+  risk: 'tools', 'fx-pricing': 'tools', 'fx-forward': 'tools', rolling: 'tools',
   'platts-board': 'tools', platts: 'tools',
-  documents: 'docs', resources: 'hub', profile: 'account', users: 'account',
+  guide: 'docs', documents: 'docs', resources: 'hub', profile: 'account', users: 'account',
 };
 
 function getInitialDarkMode() {
@@ -357,17 +352,13 @@ export default function TradingPlatform() {
   // ── Navigation ────────────────────────────────────────────────
   const nav = [
     { id: 'advisor',            label: 'Conseiller',         icon: Bot,             section: 'main' },
-    { id: 'deal-manager-agent', label: 'Gestionnaire deals', icon: Bot,             section: 'main' },
     { id: 'dashboard',          label: 'Tableau de bord',    icon: LayoutDashboard, section: 'main' },
     { id: 'position',           label: 'Book de position',   icon: Scale,           section: 'main' },
     { id: 'market',    label: 'Marché temps réel', icon: Activity,        section: 'main' },
-    { id: 'ice-board', label: 'ICE Futures',       icon: Flame,           section: 'main' },
-    { id: 'curve',     label: 'Courbe à terme',    icon: Layers,          section: 'main' },
     { id: 'cockpit',   label: 'Cockpit deal',      icon: Gauge,           section: 'deals' },
     { id: 'deals',     label: 'Mes deals',         icon: ScrollText,      section: 'deals' },
     ...(!isViewer ? [{ id: 'new-deal', label: 'Nouveau deal', icon: FilePlus2, section: 'deals' }] : []),
     { id: 'lots',      label: 'Lots & cargaisons', icon: Package,         section: 'deals' },
-    { id: 'optimizer', label: 'Optimiseur',        icon: Lightbulb,       section: 'deals' },
     { id: 'blotter',   label: 'Blotter / Journal', icon: History,         section: 'deals' },
     { id: 'hedging',   label: 'Hedging',           icon: TrendingUp,      section: 'tools' },
     { id: 'pricing',   label: 'Pricing',           icon: DollarSign,      section: 'tools' },
@@ -377,10 +368,10 @@ export default function TradingPlatform() {
     { id: 'risk',          label: 'Risques',           icon: ShieldAlert,  section: 'tools' },
     { id: 'fx-pricing',   label: 'FX Pricing',        icon: ShieldCheck,  section: 'tools' },
     { id: 'fx-forward',  label: 'Couverture FX',     icon: Landmark,     section: 'tools' },
-    { id: 'spreads',  label: 'Spreads',           icon: TrendingUp,      section: 'tools' },
     { id: 'rolling',  label: 'Rolling',           icon: RefreshCw,       section: 'tools' },
     { id: 'platts-board', label: 'Platts Board',   icon: Zap,             section: 'tools' },
     { id: 'platts',   label: 'Import Platts',     icon: FileSpreadsheet, section: 'tools' },
+    { id: 'guide',     label: "Notice d'utilisation", icon: BookOpen,     section: 'docs' },
     { id: 'documents', label: 'Procédures & Docs', icon: ClipboardList,   section: 'docs' },
     { id: 'resources', label: 'Hub Ressources',   icon: Globe,           section: 'hub' },
     { id: 'profile',   label: 'Mon profil',        icon: User,            section: 'account' },
@@ -483,13 +474,10 @@ export default function TradingPlatform() {
         {/* ── Main content ─────────────────────────────────────── */}
         <main className="flex-1 overflow-auto">
           <div className="max-w-7xl mx-auto p-6 lg:p-8">
-            {activeTab === 'advisor'            && <Advisor currentUser={currentUser} marketPrices={marketPrices} />}
-            {activeTab === 'deal-manager-agent' && <DealManagerLocal deals={deals} marketPrices={marketPrices} plattsDataset={plattsDataset} />}
+            {activeTab === 'advisor'            && <Advisor currentUser={currentUser} marketPrices={marketPrices} deals={deals} goTo={openDealIn} />}
             {activeTab === 'dashboard'          && <Dashboard deals={deals} goTo={navigateTo} marketPrices={marketPrices} setMarketPrice={setMarketPrice} openDeal={(id) => openDealIn('cockpit', id)} />}
             {activeTab === 'position'           && <PositionBook deals={deals} marketPrices={marketPrices} setMarketPrice={setMarketPrice} />}
             {activeTab === 'market'    && <Market />}
-            {activeTab === 'ice-board' && <ICEBoard />}
-            {activeTab === 'curve'     && <ForwardCurve />}
             {activeTab === 'cockpit'   && (
               <DealCockpit deals={deals} marketPrices={marketPrices} initialDealId={focusDealId}
                 onOpenModule={openDealIn} onEdit={editDeal} isViewer={isViewer} userId={currentUser.id}
@@ -501,7 +489,6 @@ export default function TradingPlatform() {
               <NewDeal onSave={saveDeal} editingDeal={editingDeal}
                 onCancel={editingDeal ? () => { setEditingDeal(null); navigateTo('deals'); } : null} />
             )}
-            {activeTab === 'optimizer'  && <Optimizer deals={deals} initialDealId={focusDealId} />}
             {activeTab === 'hedging'    && <Hedging deals={deals} onHedgeSaved={saveHedge} userId={currentUser.id} initialDealId={focusDealId} />}
             {activeTab === 'pricing'    && <Pricing marketPrices={marketPrices} deals={deals} onPricingSaved={savePricing} initialDealId={focusDealId} />}
             {activeTab === 'freight'    && <Freight deals={deals} onFreightSaved={saveFreight} initialDealId={focusDealId} />}
@@ -511,10 +498,10 @@ export default function TradingPlatform() {
             {activeTab === 'risk'       && <RiskMatrix deals={deals} onRiskSaved={saveRiskMatrix} initialDealId={focusDealId} />}
             {activeTab === 'fx-pricing'  && <FxPricingValidator deals={deals} onPricingValidated={savePricingValidation} currentUser={currentUser} initialDealId={focusDealId} />}
             {activeTab === 'fx-forward'  && <FxForward deals={deals} onFxSaved={saveFxHedge} initialDealId={focusDealId} />}
-            {activeTab === 'spreads'    && <Spreads />}
             {activeTab === 'rolling'    && <Rolling deals={deals} userId={currentUser.id} initialDealId={focusDealId} />}
             {activeTab === 'platts-board' && <PlattsBoard plattsDataset={plattsDataset} setMarketPrice={setMarketPrice} deals={deals} onPushToDeal={pushMopToDeal} />}
             {activeTab === 'platts'    && <PlattsImport setMarketPrice={setMarketPrice} marketPrices={marketPrices} onDatasetLoaded={setPlattsDataset} />}
+            {activeTab === 'guide'     && <Guide />}
             {activeTab === 'documents' && <Documents deals={deals} />}
             {activeTab === 'resources' && <Resources />}
             {activeTab === 'profile'   && <MyProfile currentUser={currentUser} onRestoreDeals={restoreDeals} />}

@@ -25,7 +25,8 @@ Tu disposes d'outils pour consulter les données réelles d'AMKO (les deals, leu
 - Tu n'as, pour l'instant, aucun pouvoir de modification. Tu ne peux pas écrire ni changer un deal. Si l'utilisateur veut appliquer un changement, explique précisément quel champ modifier et quelle valeur, et indique-lui de le faire dans le module concerné d'AMKO. Présente toujours cela comme une proposition à valider par lui.
 
 ## Cartographie d'AMKO (ce que tu connais de la plateforme)
-La plateforme couvre : Dashboard, Marché (TradingView), Courbe à terme, NewDeal, DealsList, Lots (multi-cargaisons), Optimizer (11 contrôles), Hedging (contrats futures), Pricing (prix physique), Freight (Worldscale/Lumpsum + démurrage), PnL (marge brute/nette), Spreads (géo/temporels), Rolling (contango/backwardation), LCChecker (23 champs SWIFT UCP 600), RiskMatrix (moteur automatique), FxPricingValidator (arbitrage GO/NO-GO), Couverture FX (forward ferme + option sur devise avec frais bancaires complets), PlattsImport/PlattsBoard (MOP), Documents (workflow 12 phases + générateurs ICPO/FCO/BCL/SPA/POP).
+La plateforme couvre : Dashboard (KPIs book, alertes, échéances 30 j), Book de position (position nette par marker, exposition après hedge, MtM, P&L consolidé, export Excel), Marché temps réel (TradingView), Cockpit deal (vue 360° : pipeline de vie, checklist « bon deal », échéancier, alertes, verdict GO/NO-GO, deal ticket imprimable), NewDeal (+ calculateur MOP), DealsList, Lots (multi-cargaisons), Blotter (journal d'audit horodaté), Hedging (contrats futures), Pricing (prix physique), Freight (Worldscale/Lumpsum + démurrage), PnL (marge à 3 niveaux : brute / après financement / nette), Rolling (contango/backwardation, historique par deal), LCChecker (22 champs SWIFT MT700 UCP 600, lié au deal), RiskMatrix (moteur automatique, persisté dans le deal), FxPricingValidator (arbitrage devises + stress ±5 % + verdict GO/NO-GO), Couverture FX (forward ferme + option sur devise avec frais bancaires complets), PlattsImport/PlattsBoard (MOP), Documents (générateurs ICPO/FCO/BCL/SPA/POP), Notice d'utilisation (guide complet avec exemple A→Z).
+Oriente l'utilisateur vers le Cockpit deal comme poste de pilotage central d'un deal, et vers le Book de position pour la vue portefeuille.
 
 ## Module Couverture FX — forward ferme & option sur devise
 Quand l'utilisateur pose des questions sur la couverture de change, les frais bancaires d'un forward, la prime d'une option devises ou la comparaison forward/option :
@@ -93,7 +94,7 @@ export const TOOLS = [
   {
     name: "analyserDeal",
     description:
-      "Lance les 11 contrôles automatiques de l'Optimizer sur un deal (marker, hedge ratio, sanctions, bank rating, LC, incoterm, tolerance, laycan, basis risk, counterparty tier, qualité pays) et renvoie les alertes classées high/med/info. À utiliser pour un diagnostic global de la qualité et du risque d'un deal.",
+      "Lance les 11 contrôles automatiques sur un deal (marker, hedge ratio, sanctions, bank rating, LC, incoterm, tolerance, laycan, basis risk, counterparty tier, qualité pays) et renvoie les alertes classées high/med/info. À utiliser pour un diagnostic rapide de la qualité et du risque d'un deal. Pour l'état d'avancement complet (checklist, verdict, échéances), préférer lireCockpitDeal.",
     input_schema: {
       type: "object",
       properties: {
@@ -248,6 +249,28 @@ export const TOOLS = [
     name: "lirePrixMarche",
     description:
       "Renvoie les prix de référence actuels de la plateforme (brent, wti, gasoil — issus de marketPrices) et un résumé du dernier dataset Platts importé s'il existe. À utiliser pour ancrer une analyse de pricing, de hedge ou de spread sur des prix réels plutôt que supposés.",
+    input_schema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: "lireCockpitDeal",
+    description:
+      "Renvoie l'état complet du cockpit d'un deal : score de complétude, checklist « bon deal » (items ok/warn/missing/bad avec le module où agir), verdict global GO / GO_WITH_CONDITIONS / NO_GO / INCOMPLETE, alertes datées (laycan, paiement, hedge échu) et échéancier. C'est l'outil de référence pour répondre à « où en est ce deal ? », « que manque-t-il ? » ou « peut-on signer ? ».",
+    input_schema: {
+      type: "object",
+      properties: {
+        dealId: { type: "string", description: "L'identifiant du deal." },
+      },
+      required: ["dealId"],
+    },
+  },
+  {
+    name: "lireBookPosition",
+    description:
+      "Renvoie la vue portefeuille agrégée : position nette long/short (MT), exposition ouverte après hedge par marker (bbl et lots équivalents), taux de couverture du book, notional, P&L validé + MtM latent + P&L total estimé, deals non couverts, et concentration par contrepartie. À utiliser pour toute question sur le portefeuille global, l'exposition résiduelle ou le risque de concentration.",
     input_schema: {
       type: "object",
       properties: {},
