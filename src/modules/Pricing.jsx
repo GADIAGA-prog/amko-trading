@@ -234,9 +234,9 @@ export default function Pricing({ marketPrices, deals = [], onPricingSaved, init
                   {fmtUSD(finalPrice, 2)} / MT
                 </div>
               </div>
-              <div className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-700">
-                <div className="text-xs text-blue-700 dark:text-blue-400 uppercase">Notional de la cargaison</div>
-                <div className="text-2xl font-bold text-blue-900 dark:text-blue-200 mt-1">{fmtUSD(notional, 0)}</div>
+              <div className="px-4 py-3 bg-brand-50 dark:bg-brand-900/20 rounded-md border border-brand-200 dark:border-brand-700">
+                <div className="text-xs text-brand-700 dark:text-brand-400 uppercase">Notional de la cargaison</div>
+                <div className="text-2xl font-bold text-brand-900 dark:text-brand-200 mt-1">{fmtUSD(notional, 0)}</div>
                 <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                   {fmt(qtyMT, 0)} MT × {fmtUSD(finalPrice, 2)}/MT
                 </div>

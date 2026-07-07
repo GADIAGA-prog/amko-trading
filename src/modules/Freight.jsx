@@ -250,10 +250,10 @@ export default function Freight({ deals = [], onFreightSaved, initialDealId }) {
               </div>
             )}
 
-            <div className="mt-4 pt-4 border-t-2 border-blue-200 dark:border-blue-700 space-y-2">
-              <div className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border-2 border-blue-300 dark:border-blue-600">
-                <div className="text-xs text-blue-700 dark:text-blue-400 uppercase font-bold">Fret total</div>
-                <div className="text-3xl font-bold text-blue-900 dark:text-blue-200 mt-1">{fmtUSD(totalFreight, 0)}</div>
+            <div className="mt-4 pt-4 border-t-2 border-brand-200 dark:border-brand-700 space-y-2">
+              <div className="px-4 py-3 bg-brand-50 dark:bg-brand-900/20 rounded-md border-2 border-brand-300 dark:border-brand-600">
+                <div className="text-xs text-brand-700 dark:text-brand-400 uppercase font-bold">Fret total</div>
+                <div className="text-3xl font-bold text-brand-900 dark:text-brand-200 mt-1">{fmtUSD(totalFreight, 0)}</div>
                 <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">{fmtUSD(freightPerMT, 2)} par MT</div>
               </div>
               {Number(demHours) > 0 && (

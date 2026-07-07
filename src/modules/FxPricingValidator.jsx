@@ -392,9 +392,9 @@ export default function FxPricingValidator({ deals = [], onPricingValidated, cur
                       <div className={`text-xl font-bold mt-1 ${eco.netMarginSpot >= 0 ? 'text-emerald-800 dark:text-emerald-300' : 'text-red-800 dark:text-red-300'}`}>{fmtUSD(eco.netMarginSpot, 0)}</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400">{fmtV(eco.marginPerMTSpot)} $/MT · {fmtV(eco.marginPercentSpot, 1)}%</div>
                     </div>
-                    <div className={`px-3 py-3 rounded-md border-2 ${eco.netMarginForward >= 0 ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300' : 'bg-red-50 dark:bg-red-900/20 border-red-300'}`}>
+                    <div className={`px-3 py-3 rounded-md border-2 ${eco.netMarginForward >= 0 ? 'bg-brand-50 dark:bg-brand-900/20 border-brand-300' : 'bg-red-50 dark:bg-red-900/20 border-red-300'}`}>
                       <div className="text-xs uppercase text-slate-500 dark:text-slate-400">Marge nette FORWARD</div>
-                      <div className={`text-xl font-bold mt-1 ${eco.netMarginForward >= 0 ? 'text-blue-800 dark:text-blue-300' : 'text-red-800 dark:text-red-300'}`}>{fmtUSD(eco.netMarginForward, 0)}</div>
+                      <div className={`text-xl font-bold mt-1 ${eco.netMarginForward >= 0 ? 'text-brand-800 dark:text-brand-300' : 'text-red-800 dark:text-red-300'}`}>{fmtUSD(eco.netMarginForward, 0)}</div>
                       <div className="text-xs text-slate-500 dark:text-slate-400">{fmtV(eco.marginPerMTForward)} $/MT · {fmtV(eco.marginPercentForward, 1)}%</div>
                     </div>
                   </div>
@@ -428,7 +428,7 @@ export default function FxPricingValidator({ deals = [], onPricingValidated, cur
                         ))}
                       </tbody>
                     </table>
-                    <div className="p-3 text-xs text-slate-700 dark:text-slate-300 bg-blue-50 dark:bg-blue-900/20">
+                    <div className="p-3 text-xs text-slate-700 dark:text-slate-300 bg-brand-50 dark:bg-brand-900/20">
                       <b>Recommandation :</b> {arb.recommendation}
                       {' · '}<b>Couvrir :</b> {fmtUSD(arb.recommendedHedgeAmount, 0)} {arb.recommendedHedgeCurrency}
                       {arb.recommendedForwardRate > 1 && ` @ ${fmtV(arb.recommendedForwardRate, 4)}`}

@@ -31,7 +31,7 @@ const VERDICT_UI = {
 };
 
 const KIND_LABEL = {
-  laycan: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  laycan: 'bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300',
   bl: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
   payment: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300',
   hedge: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300',
@@ -85,7 +85,7 @@ export default function DealCockpit({
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Gauge className="w-6 h-6 text-blue-700 dark:text-blue-400" /> Cockpit du deal
+            <Gauge className="w-6 h-6 text-brand-700 dark:text-brand-400" /> Cockpit du deal
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Vue 360° — cycle de vie, checklist « bon deal », échéances, alertes et économie du deal
@@ -170,15 +170,15 @@ export default function DealCockpit({
                   const done = i < stage, current = i === stage;
                   return (
                     <React.Fragment key={s.key}>
-                      {i > 0 && <div className={`h-0.5 flex-1 min-w-3 ${i <= stage ? 'bg-blue-600' : 'bg-slate-200 dark:bg-slate-700'}`} />}
+                      {i > 0 && <div className={`h-0.5 flex-1 min-w-3 ${i <= stage ? 'bg-brand-600' : 'bg-slate-200 dark:bg-slate-700'}`} />}
                       <div className="flex flex-col items-center gap-1 flex-shrink-0">
                         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 transition
-                          ${current ? 'bg-blue-700 border-blue-700 text-white shadow' :
-                            done ? 'bg-blue-100 border-blue-500 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' :
+                          ${current ? 'bg-brand-700 border-brand-700 text-white shadow' :
+                            done ? 'bg-brand-100 border-brand-500 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' :
                             'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-400'}`}>
                           {done ? '✓' : i + 1}
                         </div>
-                        <span className={`text-[10px] font-medium whitespace-nowrap ${current ? 'text-blue-700 dark:text-blue-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                        <span className={`text-[10px] font-medium whitespace-nowrap ${current ? 'text-brand-700 dark:text-brand-400' : 'text-slate-500 dark:text-slate-400'}`}>
                           {s.label}
                         </span>
                       </div>
@@ -247,7 +247,7 @@ export default function DealCockpit({
                       </div>
                       {a.tab && (
                         <button onClick={() => openItem(a)}
-                          className="text-xs text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-0.5 flex-shrink-0">
+                          className="text-xs text-brand-700 dark:text-brand-400 hover:underline flex items-center gap-0.5 flex-shrink-0">
                           Traiter <ChevronRight className="w-3 h-3" />
                         </button>
                       )}
@@ -287,7 +287,7 @@ export default function DealCockpit({
                           </div>
                           {actionable && (
                             <button onClick={() => openItem(item)}
-                              className="text-xs text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-0.5 flex-shrink-0">
+                              className="text-xs text-brand-700 dark:text-brand-400 hover:underline flex items-center gap-0.5 flex-shrink-0">
                               Ouvrir <ArrowRight className="w-3 h-3" />
                             </button>
                           )}
@@ -312,8 +312,8 @@ export default function DealCockpit({
                       {timeline.map((e, i) => {
                         const past = e.date < today, isToday = e.date === today;
                         return (
-                          <div key={i} className={`px-5 py-2.5 flex items-center gap-3 ${past ? 'opacity-50' : ''} ${isToday ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}>
-                            <span className={`font-mono text-xs font-semibold ${isToday ? 'text-blue-700 dark:text-blue-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                          <div key={i} className={`px-5 py-2.5 flex items-center gap-3 ${past ? 'opacity-50' : ''} ${isToday ? 'bg-brand-50 dark:bg-brand-900/20' : ''}`}>
+                            <span className={`font-mono text-xs font-semibold ${isToday ? 'text-brand-700 dark:text-brand-300' : 'text-slate-600 dark:text-slate-400'}`}>
                               {e.date}
                             </span>
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold ${KIND_LABEL[e.kind] || KIND_LABEL.creation}`}>
@@ -377,7 +377,7 @@ export default function DealCockpit({
                       <div className="mt-3 flex items-center justify-between rounded-md border border-dashed border-slate-300 dark:border-slate-600 px-3 py-2">
                         <span className="text-xs text-slate-500 dark:text-slate-400">P&L 3 niveaux non validé pour ce deal.</span>
                         <button onClick={() => onOpenModule && onOpenModule('pnl', deal.id)}
-                          className="text-xs text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-0.5">
+                          className="text-xs text-brand-700 dark:text-brand-400 hover:underline flex items-center gap-0.5">
                           Calculer <ArrowRight className="w-3 h-3" />
                         </button>
                       </div>

@@ -53,7 +53,7 @@ export default function Blotter({ userId, deals = [], onOpenDeal, isAdmin }) {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <History className="w-6 h-6 text-blue-700 dark:text-blue-400" /> Blotter — journal d'audit
+            <History className="w-6 h-6 text-brand-700 dark:text-brand-400" /> Blotter — journal d'audit
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Trace horodatée de toutes les actions sur vos deals : création, pricing, hedge, P&L, statuts…
@@ -125,7 +125,7 @@ export default function Blotter({ userId, deals = [], onOpenDeal, isAdmin }) {
                         <td className="py-2 px-4">
                           {e.dealId ? (
                             <button onClick={() => onOpenDeal && onOpenDeal(e.dealId)}
-                              className="font-mono text-xs text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-1">
+                              className="font-mono text-xs text-brand-700 dark:text-brand-400 hover:underline flex items-center gap-1">
                               <Gauge className="w-3 h-3" /> {e.dealId}
                             </button>
                           ) : <span className="text-xs text-slate-400">—</span>}

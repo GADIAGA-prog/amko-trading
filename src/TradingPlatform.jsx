@@ -431,7 +431,7 @@ export default function TradingPlatform() {
                           onClick={() => { if (n.id === 'new-deal') setEditingDeal(null); navigateTo(n.id); }}
                           className={`w-full flex items-center gap-3 pr-4 py-2 text-sm transition ${
                             active
-                              ? 'bg-blue-700 text-white border-l-4 border-amber-400 pl-5'
+                              ? 'bg-brand-700 text-white border-l-4 border-amber-400 pl-5'
                               : 'text-slate-300 hover:bg-slate-800 border-l-4 border-transparent pl-6'
                           }`}>
                           <Icon className="w-4 h-4 flex-shrink-0" />

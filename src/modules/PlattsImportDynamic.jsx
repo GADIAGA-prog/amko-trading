@@ -211,7 +211,7 @@ export default function PlattsImportDynamic({ setMarketPrice, onDatasetLoaded })
       <Card>
         <CardHeader icon={Upload} title="Importer un fichier Platts Excel" subtitle="Format supporté : Time Series + codes, Last, descriptions, puis dates/prix. Dates Platts lues en MM/DD/YYYY." />
         <CardBody>
-          <div onClick={() => fileRef.current?.click()} className="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer border-slate-300 dark:border-slate-700 hover:border-blue-500 hover:bg-slate-50 dark:hover:bg-slate-800">
+          <div onClick={() => fileRef.current?.click()} className="border-2 border-dashed rounded-xl p-10 text-center cursor-pointer border-slate-300 dark:border-slate-700 hover:border-brand-500 hover:bg-slate-50 dark:hover:bg-slate-800">
             <FileSpreadsheet className="w-12 h-12 mx-auto mb-3 text-slate-400" />
             <div className="font-semibold text-slate-700 dark:text-slate-200">Cliquez pour importer le fichier Platts</div>
             <div className="text-xs text-slate-500 mt-1">Formats : .xlsx, .xls, .csv</div>

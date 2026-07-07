@@ -51,7 +51,7 @@ export const SANCTIONED_COUNTRIES = [
 
 export const ROLES = {
   admin:  { label: 'Administrateur', color: 'bg-red-100 text-red-800',     desc: 'Accès total + gestion des utilisateurs' },
-  trader: { label: 'Trader',         color: 'bg-blue-100 text-blue-800',   desc: 'Création et gestion de ses propres deals' },
+  trader: { label: 'Trader',         color: 'bg-brand-100 text-brand-800',   desc: 'Création et gestion de ses propres deals' },
   viewer: { label: 'Viewer',         color: 'bg-slate-100 text-slate-700', desc: 'Lecture seule, pas de création de deals' },
 };
 

@@ -114,7 +114,7 @@ export default function LCChecker({ deals = [], onLCSaved, initialDealId }) {
                 <input type="checkbox"
                   checked={!!checked[f.code]}
                   onChange={e => setChecked(c => ({ ...c, [f.code]: e.target.checked }))}
-                  className="mt-1 w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500" />
+                  className="mt-1 w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-brand-600 focus:ring-brand-500" />
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-mono text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-700 rounded text-slate-700 dark:text-slate-300 font-semibold">

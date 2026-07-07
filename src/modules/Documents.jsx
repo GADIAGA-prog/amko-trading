@@ -632,7 +632,7 @@ export default function Documents({ deals }) {
           <button key={id} onClick={() => setActiveDoc(id)}
             className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-t-md transition border-b-2 ${
               activeDoc === id
-                ? 'border-blue-600 text-blue-700 dark:text-blue-400 bg-white dark:bg-slate-800'
+                ? 'border-brand-600 text-brand-700 dark:text-brand-400 bg-white dark:bg-slate-800'
                 : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
             }`}>
             <Icon className="w-4 h-4" />{label}
@@ -655,7 +655,7 @@ export default function Documents({ deals }) {
                       className={`flex items-start gap-3 p-3 rounded-md border transition cursor-pointer ${
                         done
                           ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-700'
-                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-blue-300'
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-brand-300'
                       }`}
                       onClick={() => setStepStatuses(s => ({ ...s, [step.n]: !s[step.n] }))}>
                       <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
@@ -669,7 +669,7 @@ export default function Documents({ deals }) {
                             {step.label}
                           </span>
                           <span className={`text-xs px-2 py-0.5 rounded font-mono ${
-                            step.doc === 'ICPO' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                            step.doc === 'ICPO' ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400' :
                             step.doc === 'FCO'  ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' :
                             step.doc === 'BCL'  ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
                             step.doc === 'SPA'  ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
@@ -821,7 +821,7 @@ export default function Documents({ deals }) {
                   ].map(({ key, label }) => (
                     <div key={key} className="flex items-center gap-3">
                       <input type="checkbox" checked={!!form[key]} onChange={() => check(key)}
-                        className="w-4 h-4 text-blue-600 border-slate-300 dark:border-slate-600 rounded" />
+                        className="w-4 h-4 text-brand-600 border-slate-300 dark:border-slate-600 rounded" />
                       <span className={`text-sm flex-1 ${form[key] ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200'}`}>{label}</span>
                       <Input value={form[key + 'Notes'] || ''} onChange={e => upd(key + 'Notes', e.target.value)}
                         placeholder="Notes / référence doc." className="max-w-[200px]" />

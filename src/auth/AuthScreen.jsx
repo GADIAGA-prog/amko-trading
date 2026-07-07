@@ -90,7 +90,7 @@ export default function AuthScreen({ onAuth }) {
           <div className="px-6 pt-6 pb-4 border-b border-slate-200">
             <div className="flex items-center gap-2 mb-2">
               {mode === 'login'
-                ? <Lock className="w-5 h-5 text-blue-700" />
+                ? <Lock className="w-5 h-5 text-brand-700" />
                 : <UserPlus className="w-5 h-5 text-emerald-700" />}
               <h1 className="text-xl font-bold text-slate-900">
                 {mode === 'login' ? 'Connexion' : isFirstUser ? 'Créer le compte administrateur' : 'Créer un compte'}
@@ -152,7 +152,7 @@ export default function AuthScreen({ onAuth }) {
               <div className="text-center pt-2 border-t border-slate-100">
                 <button type="button"
                   onClick={() => { setMode(m => m === 'login' ? 'signup' : 'login'); setError(''); }}
-                  className="text-sm text-blue-700 hover:underline">
+                  className="text-sm text-brand-700 hover:underline">
                   {mode === 'login' ? 'Pas de compte ? Créer un compte' : 'Déjà inscrit ? Se connecter'}
                 </button>
               </div>

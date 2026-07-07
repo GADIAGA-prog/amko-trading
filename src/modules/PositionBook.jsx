@@ -121,7 +121,7 @@ export default function PositionBook({ deals = [], marketPrices = {}, setMarketP
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <Scale className="w-6 h-6 text-blue-700 dark:text-blue-400" /> Book de position &amp; Mark-to-Market
+            <Scale className="w-6 h-6 text-brand-700 dark:text-brand-400" /> Book de position &amp; Mark-to-Market
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Position nette, exposition ouverte après couverture et P&amp;L consolidé sur l'ensemble du portefeuille
@@ -215,7 +215,7 @@ export default function PositionBook({ deals = [], marketPrices = {}, setMarketP
                         <td className="py-2.5 px-4 text-right text-emerald-700 dark:text-emerald-400">{fmt(m.longBbl, 0)}</td>
                         <td className="py-2.5 px-4 text-right text-red-700 dark:text-red-400">{fmt(m.shortBbl, 0)}</td>
                         <td className={`py-2.5 px-4 text-right font-medium ${signCls(m.physBbl)}`}>{m.physBbl >= 0 ? '+' : ''}{fmt(m.physBbl, 0)}</td>
-                        <td className="py-2.5 px-4 text-right text-blue-700 dark:text-blue-400">{m.hedgedBbl >= 0 ? '+' : ''}{fmt(m.hedgedBbl, 0)}</td>
+                        <td className="py-2.5 px-4 text-right text-brand-700 dark:text-brand-400">{m.hedgedBbl >= 0 ? '+' : ''}{fmt(m.hedgedBbl, 0)}</td>
                         <td className={`py-2.5 px-4 text-right font-bold ${signCls(m.netOpenBbl)}`}>{m.netOpenBbl >= 0 ? '+' : ''}{fmt(m.netOpenBbl, 0)}</td>
                         <td className={`py-2.5 px-4 text-right ${signCls(m.netOpenBbl)}`}>{m.netOpenLots != null ? (m.netOpenLots >= 0 ? '+' : '') + fmt(m.netOpenLots, 1) : '—'}</td>
                         <td className="py-2.5 px-4">

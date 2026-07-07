@@ -180,7 +180,7 @@ export default function PnL({ deals, marketPrices, onFreightSaved, onPnLSaved, i
                 <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase">Coûts directs (jambe physique)</p>
                 {selectedDealId && deals.find(d => d.id === selectedDealId)?.freight && freightSource !== 'deal' && (
                   <button onClick={importFreightFromDeal}
-                    className="text-xs text-blue-700 dark:text-blue-400 hover:underline flex items-center gap-1">
+                    className="text-xs text-brand-700 dark:text-brand-400 hover:underline flex items-center gap-1">
                     ⬇ Importer le fret sauvegardé du deal
                   </button>
                 )}
@@ -305,7 +305,7 @@ function PnLLevel({ n, label, sub, value, perMT, pct, accent = 'slate', big = fa
         ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-300 dark:border-emerald-600'
         : 'bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-600')
     : accent === 'blue'
-      ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-600'
+      ? 'bg-brand-50 dark:bg-brand-900/20 border-brand-300 dark:border-brand-600'
       : 'bg-slate-50 dark:bg-slate-800/60 border-slate-300 dark:border-slate-600';
   const valueColor = accent === 'result'
     ? (pos ? 'text-emerald-900 dark:text-emerald-200' : 'text-red-900 dark:text-red-300')

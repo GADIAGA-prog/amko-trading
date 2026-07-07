@@ -26,8 +26,8 @@ export function clearAudit(userId) {
 // Libellés et couleurs d'affichage par type d'action.
 export const ACTION_META = {
   created:      { label: 'Création',        cls: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' },
-  updated:      { label: 'Édition',         cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
-  duplicated:   { label: 'Duplication',     cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
+  updated:      { label: 'Édition',         cls: 'bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' },
+  duplicated:   { label: 'Duplication',     cls: 'bg-brand-100 text-brand-700 dark:bg-brand-900/40 dark:text-brand-300' },
   deleted:      { label: 'Suppression',     cls: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' },
   status:       { label: 'Statut',          cls: 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300' },
   pricing:      { label: 'Pricing',         cls: 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300' },

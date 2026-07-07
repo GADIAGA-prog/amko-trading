@@ -159,7 +159,7 @@ export default function DealsList({ deals, onEdit, onDelete, onDuplicate, onImpo
                           return (
                             <div className="leading-tight">
                               <div className="text-emerald-700 dark:text-emerald-400">A {hasBuy ? fmt(Number(buy), 2) : '—'}</div>
-                              <div className="text-blue-700 dark:text-blue-400">V {hasSell ? fmt(Number(sell), 2) : '—'}</div>
+                              <div className="text-brand-700 dark:text-brand-400">V {hasSell ? fmt(Number(sell), 2) : '—'}</div>
                             </div>
                           );
                         })()}
@@ -201,12 +201,12 @@ export default function DealsList({ deals, onEdit, onDelete, onDuplicate, onImpo
                         <div className="flex gap-1">
                           {onOpen && (
                             <button onClick={() => onOpen(d)} title="Ouvrir le cockpit du deal"
-                              className="text-xs px-2 py-1 flex items-center gap-1 text-white bg-blue-700 hover:bg-blue-800 rounded font-medium">
+                              className="text-xs px-2 py-1 flex items-center gap-1 text-white bg-brand-700 hover:bg-brand-800 rounded font-medium">
                               <Gauge className="w-3.5 h-3.5" /> Cockpit
                             </button>
                           )}
                           <button onClick={() => onEdit(d)}
-                            className="text-xs px-2 py-1 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded">
+                            className="text-xs px-2 py-1 text-brand-700 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-900/30 rounded">
                             Éditer
                           </button>
                           <button onClick={() => onDuplicate(d)} title="Dupliquer"

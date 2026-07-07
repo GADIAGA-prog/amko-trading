@@ -50,10 +50,10 @@ function ScenarioRow({ s, ccy, ccyDom }) {
       </td>
       <td className={`py-2 px-3 text-right font-semibold ${s.optionGainVsSpot >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
         {s.optionGainVsSpot >= 0 ? '+' : ''}{fmtUSD(s.optionGainVsSpot, 0)}
-        {s.optionExercised && <span className="ml-1 text-xs text-blue-500">(exercée)</span>}
+        {s.optionExercised && <span className="ml-1 text-xs text-brand-500">(exercée)</span>}
       </td>
       <td className="py-2 px-3 text-center">
-        <span className={`px-2 py-0.5 rounded text-xs font-bold ${fwdBetter ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'}`}>
+        <span className={`px-2 py-0.5 rounded text-xs font-bold ${fwdBetter ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30 dark:text-brand-300' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'}`}>
           {fwdBetter ? 'Forward' : 'Option'}
         </span>
       </td>
@@ -293,7 +293,7 @@ export default function FxForward({ deals = [], onFxSaved, initialDealId }) {
             <Field label="Durée calculée">
               <div className={`px-3 py-2 rounded-md border text-sm font-semibold
                 ${tenor > 0
-                  ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-700 text-blue-900 dark:text-blue-200'
+                  ? 'bg-brand-50 dark:bg-brand-900/20 border-brand-200 dark:border-brand-700 text-brand-900 dark:text-brand-200'
                   : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-500'
                 }`}>
                 {tenor > 0 ? `${tenor} jours` : '— (choisir les dates)'}
@@ -388,7 +388,7 @@ export default function FxForward({ deals = [], onFxSaved, initialDealId }) {
                   value={fmtUSD(forwardResult.spreadCost, 0)}
                   hint={`+${fmt(n(bankSpreadPct), 2)} %`} />
                 <Row label="Taux forward client"
-                  value={<span className="font-bold text-blue-700 dark:text-blue-400">{fmtRate(forwardResult.clientForwardRate)}</span>} />
+                  value={<span className="font-bold text-brand-700 dark:text-brand-400">{fmtRate(forwardResult.clientForwardRate)}</span>} />
                 <Row label={`Montant à débourser à l'échéance (${ccyDom})`}
                   value={<span className="font-bold">{fmtUSD(forwardResult.settlementAmount, 0)}</span>} />
                 <div className="border-t border-slate-100 dark:border-slate-700 pt-2 mt-2 space-y-2">
@@ -478,7 +478,7 @@ export default function FxForward({ deals = [], onFxSaved, initialDealId }) {
                   value={<span className="font-bold">{fmtUSD(optionResult.totalUpfrontCost, 0)}</span>} />
                 <div className="border-t border-slate-100 dark:border-slate-700 pt-2 mt-2 space-y-2">
                   <Row label="Taux de revient si exercée"
-                    value={<span className="font-semibold text-blue-700 dark:text-blue-400">{fmtRate(optionResult.effectiveRateIfExercised)}</span>} />
+                    value={<span className="font-semibold text-brand-700 dark:text-brand-400">{fmtRate(optionResult.effectiveRateIfExercised)}</span>} />
                   <Row label="Point mort (breakeven)"
                     value={<span className="font-semibold">{fmtRate(optionResult.breakeven)}</span>}
                     hint="Spot à l'échéance à partir duquel l'option est rentable" />

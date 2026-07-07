@@ -220,7 +220,7 @@ export default function Hedging({ deals, onHedgeSaved, userId, initialDealId }) 
                   <>
                     <div className="text-xs text-slate-500 dark:text-slate-400 uppercase">Volume physique (MT)</div>
                     <div className="text-lg font-semibold text-slate-900 dark:text-slate-100 mt-1">
-                      <span className="text-blue-700 dark:text-blue-400">{fmt(qty, 0)} MT</span>
+                      <span className="text-brand-700 dark:text-brand-400">{fmt(qty, 0)} MT</span>
                     </div>
                     <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                       Volume couvert ({hedgeRatio}%) : <b>{fmt(qty * hedgeRatio / 100, 0)} MT</b>
@@ -230,7 +230,7 @@ export default function Hedging({ deals, onHedgeSaved, userId, initialDealId }) 
                   <>
                     <div className="text-xs text-slate-500 dark:text-slate-400 uppercase">Conversion en barils</div>
                     <div className="text-lg font-semibold text-slate-900 dark:text-slate-100 mt-1">
-                      {fmt(qty, 0)} MT × {product.bblPerMT} bbl/MT = <span className="text-blue-700 dark:text-blue-400">{fmt(barrels, 0)} bbl</span>
+                      {fmt(qty, 0)} MT × {product.bblPerMT} bbl/MT = <span className="text-brand-700 dark:text-brand-400">{fmt(barrels, 0)} bbl</span>
                     </div>
                     <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
                       Volume couvert ({hedgeRatio}%) : <b>{fmt(hedgedBarrels, 0)} bbl</b>
@@ -256,9 +256,9 @@ export default function Hedging({ deals, onHedgeSaved, userId, initialDealId }) 
                 </div>
               )}
 
-              <div className="px-4 py-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-700">
-                <div className="text-xs text-blue-700 dark:text-blue-400 uppercase">Lots théoriques</div>
-                <div className="text-2xl font-bold text-blue-900 dark:text-blue-200 mt-1">
+              <div className="px-4 py-3 bg-brand-50 dark:bg-brand-900/20 rounded-md border border-brand-200 dark:border-brand-700">
+                <div className="text-xs text-brand-700 dark:text-brand-400 uppercase">Lots théoriques</div>
+                <div className="text-2xl font-bold text-brand-900 dark:text-brand-200 mt-1">
                   {contract.unit === 'bbl'
                     ? <>{fmt(hedgedBarrels, 0)} bbl ÷ {contract.size} bbl/lot = {fmt(lots, 2)} lots</>
                     : <>{fmt(qty * hedgeRatio / 100, 0)} MT ÷ {contract.size} MT/lot = {fmt(lots, 2)} lots</>}

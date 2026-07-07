@@ -11,21 +11,21 @@ const NOTICE_HTML = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.55; color: #0f172a; margin: 0; padding: 28px 40px; background: #fff; }
-  h1 { font-size: 17pt; border-bottom: 3px solid #1d4ed8; padding-bottom: 8px; margin: 0 0 4px; }
+  h1 { font-size: 17pt; border-bottom: 3px solid #598223; padding-bottom: 8px; margin: 0 0 4px; }
   .sub { color: #64748b; margin-bottom: 22px; font-size: 9.5pt; }
-  h2 { font-size: 12.5pt; color: #1d4ed8; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin: 26px 0 10px; }
+  h2 { font-size: 12.5pt; color: #598223; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin: 26px 0 10px; }
   h3 { font-size: 10.5pt; margin: 16px 0 6px; color: #0f172a; }
   table { width: 100%; border-collapse: collapse; margin: 8px 0; }
   th, td { border: 1px solid #cbd5e1; padding: 5px 8px; text-align: left; vertical-align: top; }
   th { background: #f1f5f9; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.4px; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .step { border: 1px solid #dbeafe; border-left: 4px solid #1d4ed8; border-radius: 6px; padding: 10px 14px; margin: 10px 0; background: #f8fafc; page-break-inside: avoid; }
-  .step b.t { color: #1d4ed8; }
+  .step { border: 1px solid #D2E9A9; border-left: 4px solid #598223; border-radius: 6px; padding: 10px 14px; margin: 10px 0; background: #f8fafc; page-break-inside: avoid; }
+  .step b.t { color: #598223; }
   .path { display: inline-block; background: #1e293b; color: #fff; border-radius: 4px; padding: 1px 8px; font-size: 8.5pt; font-family: Consolas, monospace; }
   .val { background: #fef3c7; border-radius: 3px; padding: 0 4px; font-weight: 600; white-space: nowrap; }
   .res { background: #dcfce7; border-radius: 3px; padding: 0 4px; font-weight: 700; white-space: nowrap; }
   .warn { background: #fff7ed; border: 1px solid #fdba74; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
-  .tip  { background: #eff6ff; border: 1px solid #93c5fd; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+  .tip  { background: #F5FAEB; border: 1px solid #B5DB79; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
   ul, ol { margin: 6px 0; padding-left: 22px; }
   li { margin: 3px 0; }
   .toc { columns: 2; font-size: 9.5pt; }
@@ -207,7 +207,7 @@ export default function Guide() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-blue-700 dark:text-blue-400" /> Notice d'utilisation
+            <BookOpen className="w-6 h-6 text-brand-700 dark:text-brand-400" /> Notice d'utilisation
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
             Guide complet de la plateforme — avec l'exemple Vitol → Lomé traité de A à Z. Imprimable en PDF.

@@ -257,7 +257,7 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
               <Input type="number" value={form.tolerance} onChange={e => update('tolerance', e.target.value)} />
             </Field>
             {selectedPlatts && (
-              <div className="md:col-span-3 rounded-lg border border-blue-200 bg-blue-50 dark:bg-blue-950/30 dark:border-blue-800 p-3 text-sm text-blue-800 dark:text-blue-200">
+              <div className="md:col-span-3 rounded-lg border border-brand-200 bg-brand-50 dark:bg-brand-950/30 dark:border-brand-800 p-3 text-sm text-brand-800 dark:text-brand-200">
                 Produit Platts sélectionné : <b>{selectedPlatts.description}</b> — code <b>{selectedPlatts.code}</b> — dernier prix <b>{selectedPlatts.price}</b> au <b>{selectedPlatts.date}</b>.
               </div>
             )}
@@ -316,44 +316,44 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
 
               <div className="grid md:grid-cols-2 gap-4">
                 {/* MOP achat : N jours autour du BL */}
-                <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3">
-                  <div className="text-xs font-semibold text-blue-800 dark:text-blue-300 mb-2">
+                <div className="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50 dark:bg-brand-950/30 p-3">
+                  <div className="text-xs font-semibold text-brand-800 dark:text-brand-300 mb-2">
                     MOP achat — {2 * nDaysAround + 1}j autour BL ({form.blDate})
                   </div>
                   {mopBL ? (
                     <>
                       <table className="w-full text-xs mb-2">
-                        <thead><tr className="text-blue-700 dark:text-blue-400">
+                        <thead><tr className="text-brand-700 dark:text-brand-400">
                           <th className="text-left pb-1">Date</th>
                           <th className="text-right pb-1">Platts (USD/MT)</th>
                         </tr></thead>
                         <tbody>
                           {mopBL.rows.map(r => (
-                            <tr key={r.date} className={r.isBL ? 'font-bold text-blue-900 dark:text-blue-100' : 'text-slate-700 dark:text-slate-300'}>
+                            <tr key={r.date} className={r.isBL ? 'font-bold text-brand-900 dark:text-brand-100' : 'text-slate-700 dark:text-slate-300'}>
                               <td>{r.date}{r.isBL ? ' ★ BL' : ''}</td>
                               <td className="text-right">{r.price != null ? r.price.toFixed(2) : '—'}</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
-                      <div className="flex items-center justify-between border-t border-blue-200 dark:border-blue-700 pt-2">
-                        <span className="font-semibold text-blue-900 dark:text-blue-100 text-sm">
+                      <div className="flex items-center justify-between border-t border-brand-200 dark:border-brand-700 pt-2">
+                        <span className="font-semibold text-brand-900 dark:text-brand-100 text-sm">
                           Moy. {mopBL.count}j : <b>{mopBL.avg.toFixed(2)} USD/MT</b>
-                          {form.differential ? <span className="text-blue-600 dark:text-blue-400"> + {form.differential} = {(mopBL.avg + Number(form.differential)).toFixed(2)}</span> : null}
+                          {form.differential ? <span className="text-brand-600 dark:text-brand-400"> + {form.differential} = {(mopBL.avg + Number(form.differential)).toFixed(2)}</span> : null}
                         </span>
                         <button
                           onClick={() => {
                             const v = (mopBL.avg + Number(form.differential || 0)).toFixed(2);
                             setForm(f => ({ ...f, purchasePrice: v, estimatedPrice: v }));
                           }}
-                          className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 transition"
+                          className="text-xs px-2 py-1 rounded bg-brand-600 text-white hover:bg-brand-700 transition"
                         >
                           → Prix achat
                         </button>
                       </div>
                     </>
                   ) : (
-                    <p className="text-xs text-blue-600 dark:text-blue-400 italic">
+                    <p className="text-xs text-brand-600 dark:text-brand-400 italic">
                       Aucune donnée Platts pour ce code et cette date BL. Importez un fichier Platts avec les dates autour du {form.blDate}.
                     </p>
                   )}

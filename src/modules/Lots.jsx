@@ -35,7 +35,7 @@ function blankLot(index, deal) {
 
 const STATUS_LABELS = {
   pending:    { label: 'À pricer',   color: 'bg-amber-100 text-amber-700' },
-  priced:     { label: 'Pricé ✓',   color: 'bg-blue-100 text-blue-700' },
+  priced:     { label: 'Pricé ✓',   color: 'bg-brand-100 text-brand-700' },
   loaded:     { label: 'Chargé',     color: 'bg-purple-100 text-purple-700' },
   discharged: { label: 'Déchargé ✓', color: 'bg-emerald-100 text-emerald-700' },
 };
@@ -186,7 +186,7 @@ export default function Lots({ deals, onLotsUpdated, onPushPrice, initialDealId 
                       className="px-5 py-3 flex items-center justify-between gap-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/40 transition"
                       onClick={() => setEditing(isOpen ? null : lot.id)}>
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-sm font-bold text-blue-700 dark:text-blue-400">
+                        <div className="w-8 h-8 rounded-full bg-brand-100 dark:bg-brand-900/30 flex items-center justify-center text-sm font-bold text-brand-700 dark:text-brand-400">
                           {idx + 1}
                         </div>
                         <div>
@@ -277,7 +277,7 @@ export default function Lots({ deals, onLotsUpdated, onPushPrice, initialDealId 
                               </div>
                             </Field>
                             <Field label="Valeur du lot">
-                              <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-md text-sm font-semibold text-blue-900 dark:text-blue-200">
+                              <div className="px-3 py-2 bg-brand-50 dark:bg-brand-900/20 border border-brand-200 dark:border-brand-700 rounded-md text-sm font-semibold text-brand-900 dark:text-brand-200">
                                 {fmtUSD(lotValue, 0)}
                               </div>
                             </Field>
@@ -354,7 +354,7 @@ export default function Lots({ deals, onLotsUpdated, onPushPrice, initialDealId 
                             {Number(l.differential) >= 0 ? '+' : ''}{fmt(l.differential, 2)}
                           </td>
                           <td className="py-2 px-4 text-right font-bold text-slate-900 dark:text-slate-100">{fmtUSD(fp, 3)}</td>
-                          <td className="py-2 px-4 text-right font-semibold text-blue-700 dark:text-blue-400">{fmtUSD(val, 0)}</td>
+                          <td className="py-2 px-4 text-right font-semibold text-brand-700 dark:text-brand-400">{fmtUSD(val, 0)}</td>
                           <td className="py-2 px-4 text-xs text-slate-600 dark:text-slate-400">{l.pricingDates || l.pricingWindow}</td>
                         </tr>
                       );
@@ -372,7 +372,7 @@ export default function Lots({ deals, onLotsUpdated, onPushPrice, initialDealId 
                       <td className="py-2 px-4 text-right text-emerald-700 dark:text-emerald-400">
                         {fmtUSD(weightedAvgPrice, 3)}
                       </td>
-                      <td className="py-2 px-4 text-right text-blue-700 dark:text-blue-400">
+                      <td className="py-2 px-4 text-right text-brand-700 dark:text-brand-400">
                         {fmtUSD(pricedLots.reduce((s, l) => {
                           const fp = (Number(l.plattsPrice) || 0) + (Number(l.differential) || 0);
                           return s + fp * (Number(l.qty) || 0); // $/MT × MT

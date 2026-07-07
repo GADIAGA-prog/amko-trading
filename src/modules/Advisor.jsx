@@ -563,7 +563,7 @@ export default function Advisor({ currentUser, marketPrices }) {
         <div className="flex flex-col h-[70vh]">
           {/* En-tête */}
           <div className="flex items-center gap-2 pb-3 border-b border-slate-200 dark:border-slate-700">
-            <Bot className="w-5 h-5 text-blue-700 dark:text-blue-400" />
+            <Bot className="w-5 h-5 text-brand-700 dark:text-brand-400" />
             <span className="font-semibold text-slate-900 dark:text-slate-100">Conseiller AMKO</span>
             <span className="text-xs text-slate-500 dark:text-slate-400 flex-1">
               lecture seule · explique chaque choix · accès à tes deals, cockpits et book
@@ -587,7 +587,7 @@ export default function Advisor({ currentUser, marketPrices }) {
                 <div className="flex flex-wrap gap-2">
                   {SUGGESTIONS.map(s => (
                     <button key={s} onClick={() => send(s)} disabled={busy}
-                      className="px-3 py-1.5 rounded-full text-xs bg-slate-100 hover:bg-blue-100 dark:bg-slate-800 dark:hover:bg-blue-900/40 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition text-left">
+                      className="px-3 py-1.5 rounded-full text-xs bg-slate-100 hover:bg-brand-100 dark:bg-slate-800 dark:hover:bg-brand-900/40 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition text-left">
                       {s}
                     </button>
                   ))}
@@ -604,10 +604,10 @@ export default function Advisor({ currentUser, marketPrices }) {
               const mine = m.role === 'user';
               return (
                 <div key={i} className={`flex gap-2 ${mine ? 'justify-end' : ''}`}>
-                  {!mine && <Bot className="w-4 h-4 mt-1 flex-shrink-0 text-blue-600 dark:text-blue-400" />}
+                  {!mine && <Bot className="w-4 h-4 mt-1 flex-shrink-0 text-brand-600 dark:text-brand-400" />}
                   <div className={`max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
                     mine
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-brand-600 text-white'
                       : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100'
                   }`}>
                     {m.text}
@@ -633,7 +633,7 @@ export default function Advisor({ currentUser, marketPrices }) {
           {/* Saisie */}
           <div className="flex gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
             <input
-              className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500 transition"
+              className="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-brand-500 transition"
               placeholder="Ex. : analyse le deal D1ABC et dis-moi si la couverture est suffisante"
               value={input}
               onChange={(e) => setInput(e.target.value)}

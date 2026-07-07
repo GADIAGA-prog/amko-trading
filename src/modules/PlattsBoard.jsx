@@ -254,7 +254,7 @@ export default function PlattsBoard({ plattsDataset, setMarketPrice, deals = [],
 
       <div className="flex flex-wrap gap-2">
         {[['snapshot', 'Snapshot'], ['mop', 'MOP Calculator'], ['spreads', 'Spreads & cracks'], ['chart', 'Graphique'], ['table', 'Table complète']].map(([id, label]) => (
-          <button key={id} onClick={() => setActiveSection(id)} className={`px-4 py-2 rounded-lg text-sm font-semibold ${activeSection === id ? 'bg-blue-700 text-white' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700'}`}>{label}</button>
+          <button key={id} onClick={() => setActiveSection(id)} className={`px-4 py-2 rounded-lg text-sm font-semibold ${activeSection === id ? 'bg-brand-700 text-white' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700'}`}>{label}</button>
         ))}
       </div>
 
@@ -304,7 +304,7 @@ export default function PlattsBoard({ plattsDataset, setMarketPrice, deals = [],
                 <div className="rounded-xl border p-4 bg-slate-50 dark:bg-slate-800"><div className="text-xs uppercase text-slate-500">Moyenne</div><div className="text-2xl font-bold">{fmt(mopValues.avgMT, 2)} $/MT</div></div>
                 <div className="rounded-xl border p-4 bg-slate-50 dark:bg-slate-800"><div className="text-xs uppercase text-slate-500">Moyenne $/bbl</div><div className="text-2xl font-bold">{fmt(mopValues.avgBbl, 2)}</div></div>
                 <div className="rounded-xl border p-4 bg-slate-50 dark:bg-slate-800"><div className="text-xs uppercase text-slate-500">Différentiel</div><div className="text-2xl font-bold">{fmt(mopValues.diff, 2)}</div></div>
-                <div className="rounded-xl border p-4 bg-blue-50 dark:bg-blue-950/30"><div className="text-xs uppercase text-blue-700">Prix final</div><div className="text-2xl font-bold">{fmt(mopValues.finalMT, 2)} $/MT</div></div>
+                <div className="rounded-xl border p-4 bg-brand-50 dark:bg-brand-950/30"><div className="text-xs uppercase text-brand-700">Prix final</div><div className="text-2xl font-bold">{fmt(mopValues.finalMT, 2)} $/MT</div></div>
               </div>
             )}
             <Button variant="primary" icon={TrendingUp} onClick={pushMop} disabled={!mopDealId || !mopValues}>Envoyer MOP vers le deal</Button>

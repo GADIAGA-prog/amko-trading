@@ -18,7 +18,7 @@ const LINKS = [
   },
   {
     category: 'Bourses & contrats futures',
-    icon: TrendingUp, color: 'text-blue-700 dark:text-blue-400',
+    icon: TrendingUp, color: 'text-brand-700 dark:text-brand-400',
     items: [
       { name: 'ICE Futures Europe', desc: 'Brent Crude, ICE Gasoil, Low Sulfur Gasoil, Jet Fuel, Fuel Oil', url: 'https://www.ice.com/products/Futures-Options/Energy' },
       { name: 'CME Group / NYMEX', desc: 'WTI, RBOB, ULSD/Heating Oil, Natural Gas', url: 'https://www.cmegroup.com/markets/energy.html' },
@@ -136,13 +136,13 @@ export default function Resources() {
               <div className="grid md:grid-cols-2 gap-3">
                 {section.items.map(item => (
                   <a key={item.name} href={item.url} target="_blank" rel="noopener noreferrer"
-                    className="block p-3 border border-slate-200 dark:border-slate-700 rounded-md hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition group">
+                    className="block p-3 border border-slate-200 dark:border-slate-700 rounded-md hover:border-brand-400 dark:hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-900/20 transition group">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
                         <div className={`font-semibold text-sm ${section.color}`}>{item.name}</div>
                         <div className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">{item.desc}</div>
                       </div>
-                      <ExternalLink className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 flex-shrink-0 mt-0.5" />
+                      <ExternalLink className="w-4 h-4 text-slate-400 dark:text-slate-500 group-hover:text-brand-600 dark:group-hover:text-brand-400 flex-shrink-0 mt-0.5" />
                     </div>
                   </a>
                 ))}

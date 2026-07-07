@@ -1,11 +1,27 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <defs>
-    <linearGradient id="d" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFD93D"/>
-      <stop offset="70%" stop-color="#FB8C00"/>
-      <stop offset="100%" stop-color="#E65100"/>
+    <linearGradient id="f" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#FDB913"/>
+      <stop offset="45%" stop-color="#F7941D"/>
+      <stop offset="100%" stop-color="#F26522"/>
     </linearGradient>
+    <radialGradient id="s" cx="35%" cy="32%" r="70%">
+      <stop offset="0%" stop-color="#C5E86C"/>
+      <stop offset="55%" stop-color="#8DC63F"/>
+      <stop offset="100%" stop-color="#4E7D1E"/>
+    </radialGradient>
   </defs>
-  <path d="M32 6 C32 6, 14 28, 14 42 C14 53, 22 60, 32 60 C42 60, 50 53, 50 42 C50 28, 32 6, 32 6 Z" fill="url(#d)"/>
-  <circle cx="32" cy="40" r="9" fill="#7CB342" opacity="0.9"/>
+  <path d="M 34 3
+           C 28 18 13 30 10 46
+           C 7 62 16 74 31 76
+           C 46 78 57 68 57 54
+           C 57 46 53 40 54 31
+           C 57 33 59 36 60 40
+           C 62 26 54 19 48 15
+           C 44 11 38 7 34 3 Z"
+        transform="scale(0.82) translate(6 1)" fill="url(#f)"/>
+  <circle cx="30" cy="44" r="15" fill="url(#s)"/>
+  <circle cx="25" cy="39" r="3.5" fill="#D9F09A" opacity="0.9"/>
+  <circle cx="34" cy="48" r="4.5" fill="#A9D65C" opacity="0.85"/>
+  <circle cx="26" cy="49" r="2.2" fill="#C5E86C" opacity="0.9"/>
 </svg>
