@@ -371,7 +371,9 @@ export default function TradingPlatform() {
     { id: 'rolling',  label: 'Rolling',           icon: RefreshCw,       section: 'tools' },
     { id: 'platts-board', label: 'Platts Board',   icon: Zap,             section: 'tools' },
     { id: 'platts',   label: 'Import Platts',     icon: FileSpreadsheet, section: 'tools' },
-    { id: 'guide',     label: "Notice d'utilisation", icon: BookOpen,     section: 'docs' },
+    // Notice masquée du menu à la demande — le module Guide reste en place :
+    // ré-ajouter la ligne ci-dessous pour la réafficher.
+    // { id: 'guide',  label: "Notice d'utilisation", icon: BookOpen,     section: 'docs' },
     { id: 'documents', label: 'Procédures & Docs', icon: ClipboardList,   section: 'docs' },
     { id: 'resources', label: 'Hub Ressources',   icon: Globe,           section: 'hub' },
     { id: 'profile',   label: 'Mon profil',        icon: User,            section: 'account' },
