@@ -27,9 +27,10 @@ import { computeRoll }  from '../calc/rollCalc.js';
 import { computeSwapPoints, computeForwardFerme, computeOptionChange, computeHedgeScenarios } from '../calc/fxForwardCalc.js';
 import { PRODUCTS, CONTRACTS } from '../constants.js';
 import { Card, Button } from '../components/UI.jsx';
-import { getPlattsProductOptions, getLatestPlattsPrice } from '../utils/plattsStore.js';
+import { getPlattsProductOptions, getLatestPlattsPrice, loadPlattsStore, normalizePlattsCode } from '../utils/plattsStore.js';
 import { buildChecklist, dealVerdict, dealAlerts, dealTimeline } from '../calc/dealLifecycle.js';
 import { computeBook } from '../calc/positionCalc.js';
+import { lookupNotion } from '../glossary.js';
 
 // =============================================================================
 // LECTURE DES DEALS DEPUIS LE LOCALSTORAGE
@@ -351,6 +352,64 @@ function makeToolExecutors(ctx) {
       };
     },
 
+    // ── expliquerNotion (glossaire officiel de la plateforme) ────────────────
+    expliquerNotion: ({ terme }) => lookupNotion(terme),
+
+    // ── lireTendanceMarche (tendance calculée sur le Platts importé) ─────────
+    lireTendanceMarche: ({ code }) => {
+      const store = loadPlattsStore();
+      const datesAsc = [...(store.dates || [])].sort();
+      if (!datesAsc.length) {
+        return {
+          marketPrices: marketPrices || null,
+          note: "Aucun fichier Platts importé : la tendance historique est indisponible. Seuls les prix de référence manuels ci-dessus sont utilisables — recommande l'import Platts pour un conseil ancré sur l'historique.",
+        };
+      }
+      const codes = code
+        ? [normalizePlattsCode(String(code).replace(/^platts:/, ''))]
+        : (store.columns || []).slice(0, 10);
+
+      const produits = codes.map((c) => {
+        const serie = datesAsc
+          .map((d) => ({ date: d, prix: store.prices?.[d]?.[c] }))
+          .filter((p) => p.prix != null);
+        if (serie.length === 0) return { code: c, error: 'Aucune cotation pour ce code.' };
+        const last = serie[serie.length - 1];
+        const at = (n) => serie[Math.max(0, serie.length - 1 - n)];
+        const p5 = at(5), p20 = at(20);
+        const d5 = last.prix - p5.prix;
+        const d20 = last.prix - p20.prix;
+        const fenetre = serie.slice(-21);
+        const diffs = fenetre.slice(1).map((p, i) => p.prix - fenetre[i].prix);
+        const volMoy = diffs.length
+          ? diffs.reduce((s, x) => s + Math.abs(x), 0) / diffs.length
+          : 0;
+        const prix = fenetre.map((p) => p.prix);
+        const d5pct = p5.prix ? (d5 / p5.prix) * 100 : 0;
+        const tendance = d5pct > 1 ? 'hausse' : d5pct < -1 ? 'baisse' : 'stable';
+        return {
+          code: c,
+          description: store.descriptions?.[c] || c,
+          dernierPrix: last.prix,
+          dernierJour: last.date,
+          variation5seances:  { montant: Math.round(d5 * 100) / 100,  pct: Math.round(d5pct * 100) / 100, depuis: p5.date },
+          variation20seances: { montant: Math.round(d20 * 100) / 100, pct: p20.prix ? Math.round((d20 / p20.prix) * 10000) / 100 : 0, depuis: p20.date },
+          volatiliteJournaliereMoyenne: Math.round(volMoy * 100) / 100,
+          min20seances: Math.min(...prix),
+          max20seances: Math.max(...prix),
+          tendance,
+          seancesDisponibles: serie.length,
+        };
+      });
+
+      return {
+        periode: { du: datesAsc[0], au: datesAsc[datesAsc.length - 1], seances: datesAsc.length },
+        produits,
+        marketPrices: marketPrices || null,
+        note: "Variations en unité de cotation ($/MT le plus souvent). Une tendance passée n'est pas une prévision : raisonner en scénarios chiffrés (hausse/stable/baisse) appliqués à l'exposition ouverte du book.",
+      };
+    },
+
     // ── lirePrixMarche ───────────────────────────────────────────────────────
     lirePrixMarche: () => {
       let platts = null;
@@ -414,10 +473,12 @@ export default function Advisor({ currentUser, marketPrices }) {
   const executors = makeToolExecutors({ userId, marketPrices });
 
   const SUGGESTIONS = [
+    'Conseille-moi selon le marché actuel : que faire sur mes deals cette semaine ?',
     'Analyse mon book de position : exposition résiduelle et priorités',
+    'Explique-moi le MOP, le basis risk et le contango avec des exemples chiffrés',
     'Quel deal a le plus faible score de complétude et que manque-t-il ?',
+    "C'est quoi une LC MT700 et que dois-je vérifier avant d'expédier ?",
     'Vérifie mes couvertures : suis-je bien hedgé sur chaque deal ?',
-    'Explique-moi le verdict GO/NO-GO de mon dernier deal',
   ];
 
   const reset = () => { setHistory([]); setView([]); setError(null); };

@@ -160,8 +160,10 @@ Rappel XOF : la parité EUR/XOF est fixe (655,957) — le vrai risque est EUR/US
 <h2>5. Le Conseiller IA (chat)</h2>
 <ul>
   <li>Le Conseiller lit <b>vos données réelles</b> (deals, cockpit, book, prix, Platts) via des outils en <b>lecture seule</b> — il ne modifie jamais rien, il recommande et explique.</li>
-  <li>Exemples de questions efficaces : <i>« Analyse mon book de position »</i> · <i>« Que manque-t-il au deal D… pour signer ? »</i> · <i>« Le hedge du deal D… est-il suffisant ? »</i> · <i>« Compare forward et option pour couvrir 18 M USD/XOF sur 42 jours »</i> · <i>« Prépare une checklist avant signature »</i>.</li>
-  <li>Donnez l'ID du deal quand vous le connaissez ; sinon l'agent liste vos deals lui-même.</li>
+  <li><b>Professeur intégré :</b> il explique toutes les notions de la plateforme à partir du glossaire officiel (~50 notions : MOP, basis risk, contango, Worldscale, démurrage, LC/MT700/UCP 600, points de terme, P&amp;L 3 niveaux…) — définition, usage dans AMKO, exemple chiffré, pièges. Demandez simplement <i>« c'est quoi… ? »</i>.</li>
+  <li><b>Conseil selon le marché :</b> il analyse la tendance des cotations Platts importées (variation 5/20 séances, volatilité), la croise avec votre exposition ouverte et chiffre l'impact par scénario avant de recommander (hedger N lots, rouler, repricer, couvrir le change… ou ne rien faire).</li>
+  <li>Exemples de questions efficaces : <i>« Conseille-moi selon le marché actuel »</i> · <i>« Explique-moi le basis risk avec un exemple »</i> · <i>« Analyse mon book de position »</i> · <i>« Que manque-t-il au deal D… pour signer ? »</i> · <i>« Compare forward et option pour couvrir 18 M USD/XOF sur 42 jours »</i>.</li>
+  <li>Donnez l'ID du deal quand vous le connaissez ; sinon l'agent liste vos deals lui-même. Pour un conseil marché pertinent, importez le Platts du jour au préalable.</li>
   <li><b>Prérequis :</b> le chat passe par l'API du déploiement — utilisez la version en ligne (Vercel). En local pur, le reste de la plateforme fonctionne, pas le chat.</li>
 </ul>
 

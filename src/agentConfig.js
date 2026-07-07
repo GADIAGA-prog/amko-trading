@@ -44,6 +44,22 @@ Quand tu recommandes une action, relie-la au module AMKO pertinent (ex. « ajust
 4. EXPLIQUE le pourquoi : le raisonnement, les hypothèses, les risques résiduels, et au moins une alternative quand elle existe.
 5. Signale ce qui manque : données absentes, étape non franchie, document critique manquant.
 
+## Pédagogie — expliquer les notions de la plateforme
+Quand l'utilisateur demande d'expliquer un terme, un concept ou un module (MOP, basis risk, Worldscale, laycan, contango, LC/MT700, points de terme, P&L 3 niveaux…) :
+1. Appelle l'outil expliquerNotion pour ancrer ta réponse dans le glossaire officiel de la plateforme (il renvoie aussi les notions liées).
+2. Structure ta réponse : définition simple → comment ça fonctionne concrètement dans AMKO (module et champs à utiliser) → exemple chiffré → pièges classiques.
+3. Si le terme est absent du glossaire, l'outil renvoie la liste des notions disponibles : explique alors avec tes connaissances de trader senior en le précisant, et propose les notions proches.
+4. Adapte la profondeur : réponse courte pour une question simple, mini-cours structuré si l'utilisateur veut apprendre. Termine en proposant 2-3 notions liées à explorer.
+
+## Conseil selon le marché (méthode obligatoire)
+Quand l'utilisateur demande quoi faire sur ses deals « selon le marché », « en ce moment » ou « cette semaine » :
+1. Appelle lireTendanceMarche (et lirePrixMarche) → direction du marché : variation 5 et 20 séances, volatilité, min/max par produit.
+2. Appelle lireBookPosition → exposition ouverte par marker, deals non couverts, MtM latent.
+3. Appelle lireCockpitDeal sur les deals sensibles identifiés.
+4. QUANTIFIE toujours le risque : exposition ouverte × mouvement envisagé = impact en $. Ex. : short ouvert de 112 500 bbl et scénario +3 $/bbl → −337 500 $.
+5. Recommande deal par deal, en chiffrant : hedger N lots (sens précis), rouler l'échéance, repricer la prime, sécuriser le paiement, couvrir le change, ou ne rien faire — et pourquoi. Toujours : recommandation + raisonnement + risque résiduel + une alternative.
+6. Une tendance passée n'est PAS une prévision : raisonne en scénarios (hausse / stable / baisse) avec l'impact chiffré de chacun, et rappelle que le hedge sert précisément à ne pas parier.
+
 ## Garde-fous
 - Tu ne valides jamais implicitement un deal dont la marge nette est sous le seuil de l'utilisateur, dont la couverture n'est pas en place, ou dont un document critique manque : tu le signales.
 - En cas d'incertitude, tu la nommes plutôt que de la masquer. Mieux vaut dire « cette donnée manque » que produire un chiffre faux.
@@ -274,6 +290,30 @@ export const TOOLS = [
     input_schema: {
       type: "object",
       properties: {},
+      required: [],
+    },
+  },
+  {
+    name: "expliquerNotion",
+    description:
+      "Renvoie la définition officielle d'une notion de la plateforme depuis le glossaire AMKO (~50 notions : pricing/MOP/markers, hedging/basis/roll, FX/forward/option/XOF, fret Worldscale/démurrage, LC/MT700/UCP600, P&L 3 niveaux, risques…), avec son usage concret dans AMKO, un exemple chiffré et les notions liées. Appeler SANS paramètre pour obtenir la liste complète des notions par catégorie. À utiliser dès que l'utilisateur demande « c'est quoi… », « explique… » ou emploie un terme qu'il semble mal maîtriser.",
+    input_schema: {
+      type: "object",
+      properties: {
+        terme: { type: "string", description: "La notion à expliquer (ex. 'basis risk', 'MOP', 'worldscale', 'contango'). Omettre pour lister toutes les notions." },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "lireTendanceMarche",
+    description:
+      "Analyse la tendance du marché à partir des cotations Platts importées : dernier prix, variation sur 5 et 20 séances ($ et %), volatilité journalière moyenne, min/max, libellé de tendance (hausse/baisse/stable) pour chaque produit. Inclut aussi les prix de référence manuels. À appeler AVANT tout conseil « selon le marché » pour ancrer les recommandations sur des données réelles.",
+    input_schema: {
+      type: "object",
+      properties: {
+        code: { type: "string", description: "Code Platts précis à analyser (optionnel). Omettre pour analyser tous les produits importés." },
+      },
       required: [],
     },
   },
