@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Gauge, CheckCircle2, AlertTriangle, XCircle, Circle, Minus, Pencil,
-  CalendarClock, BellRing, Wallet, ArrowRight, ChevronRight, Printer,
+  CalendarClock, BellRing, Wallet, ArrowRight, ChevronRight, Printer, History,
 } from 'lucide-react';
 import { PRODUCTS } from '../constants.js';
 import { fmt, fmtUSD } from '../utils.js';
@@ -12,6 +12,7 @@ import {
 } from '../calc/dealLifecycle.js';
 import { analyzeDealPosition } from '../calc/positionCalc.js';
 import { printDealTicket } from '../utils/dealTicket.js';
+import { loadAudit, ACTION_META } from '../utils/auditLog.js';
 
 // ─── Styles d'état de checklist ───────────────────────────────────────────────
 const STATE_UI = {
@@ -39,7 +40,7 @@ const KIND_LABEL = {
 };
 
 export default function DealCockpit({
-  deals = [], marketPrices = {}, initialDealId,
+  deals = [], marketPrices = {}, initialDealId, userId,
   onOpenModule, onEdit, onUpdateStatus, isViewer,
 }) {
   const [selectedId, setSelectedId] = useState(initialDealId || deals[deals.length - 1]?.id || '');
@@ -55,6 +56,11 @@ export default function DealCockpit({
   const timeline  = useMemo(() => deal ? dealTimeline(deal) : [], [deal]);
   const verdict   = useMemo(() => checklist ? dealVerdict(checklist, alerts) : null, [checklist, alerts]);
   const position  = useMemo(() => deal ? analyzeDealPosition(deal, marketPrices, {}) : null, [deal, marketPrices]);
+  // Derniers événements du blotter pour ce deal (deal change d'identité à chaque save → recharge)
+  const history   = useMemo(
+    () => deal ? loadAudit(userId).filter(e => e.dealId === deal.id).slice(0, 8) : [],
+    [deal, userId],
+  );
 
   const openItem = (item) => {
     if (!deal) return;
@@ -343,6 +349,29 @@ export default function DealCockpit({
                         <EcoRow label="P&L 1 — marge brute" value={fmtUSD(deal.pnl.pnl1, 0)} tone={deal.pnl.pnl1 >= 0 ? 'pos' : 'neg'} />
                         <EcoRow label="P&L 2 — après financement" value={fmtUSD(deal.pnl.pnl2, 0)} tone={deal.pnl.pnl2 >= 0 ? 'pos' : 'neg'} />
                         <EcoRow label="P&L 3 — marge nette" value={fmtUSD(deal.pnl.pnl3, 0)} tone={deal.pnl.pnl3 >= 0 ? 'pos' : 'neg'} bold />
+                        {/* Réconciliation avec la marge du FX Pricing Validator */}
+                        {(() => {
+                          const pvEco = deal.pricingValidation?.economics;
+                          const pvCcy = deal.pricingValidation?.marginCurrency || 'USD';
+                          if (pvEco?.netMarginForward == null) return null;
+                          const pvM = pvEco.netMarginForward;
+                          if (pvCcy !== 'USD') {
+                            return (
+                              <div className="mt-2 text-xs text-slate-500 dark:text-slate-400 rounded-md bg-slate-50 dark:bg-slate-800/60 px-3 py-2">
+                                Marge validation FX (fwd) : <b>{fmt(pvM, 0)} {pvCcy}</b> — devise différente du P&L (USD), non comparable directement.
+                              </div>
+                            );
+                          }
+                          const gap = pvM - deal.pnl.pnl3;
+                          const gapPct = Math.abs(deal.pnl.pnl3) > 0 ? Math.abs(gap) / Math.abs(deal.pnl.pnl3) * 100 : 0;
+                          const diverge = gapPct > 5;
+                          return (
+                            <div className={`mt-2 text-xs rounded-md px-3 py-2 ${diverge ? 'bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-700' : 'bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400'}`}>
+                              Réconciliation — marge validation FX (fwd) : <b>{fmtUSD(pvM, 0)}</b> • écart vs P&L 3 : <b>{gap >= 0 ? '+' : ''}{fmtUSD(gap, 0)}</b> ({fmt(gapPct, 1)} %)
+                              {diverge && ' — ⚠ hypothèses divergentes : revalider coûts ou taux FX'}
+                            </div>
+                          );
+                        })()}
                       </>
                     ) : (
                       <div className="mt-3 flex items-center justify-between rounded-md border border-dashed border-slate-300 dark:border-slate-600 px-3 py-2">
@@ -354,6 +383,34 @@ export default function DealCockpit({
                       </div>
                     )}
                   </div>
+                </CardBody>
+              </Card>
+
+              {/* ── Historique du deal (blotter) ────────────────── */}
+              <Card>
+                <CardHeader icon={History} title="Historique du deal"
+                  subtitle="Dernières actions enregistrées au blotter" />
+                <CardBody className="p-0">
+                  {history.length === 0 ? (
+                    <p className="px-5 py-5 text-sm text-slate-500 dark:text-slate-400 text-center">
+                      Aucun événement — les actions sur ce deal apparaîtront ici.
+                    </p>
+                  ) : (
+                    <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                      {history.map((e, i) => {
+                        const meta = ACTION_META[e.action] || { label: e.action, cls: 'bg-slate-100 text-slate-600' };
+                        return (
+                          <div key={i} className="px-5 py-2 flex items-center gap-3">
+                            <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400 flex-shrink-0">
+                              {String(e.ts).slice(0, 10)} {String(e.ts).slice(11, 16)}
+                            </span>
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold flex-shrink-0 ${meta.cls}`}>{meta.label}</span>
+                            <span className="text-xs text-slate-700 dark:text-slate-300 truncate">{e.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </CardBody>
               </Card>
             </div>

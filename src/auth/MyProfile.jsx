@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { User, KeyRound, Save, Download, Upload } from 'lucide-react';
 import { ROLES } from '../constants.js';
-import { loadUsers, saveUsers, hashPassword, genSalt } from './authHelpers.js';
+import { loadUsers, saveUsers, hashPassword, genSalt, verifyPassword } from './authHelpers.js';
 import { Card, CardHeader, CardBody, Field, Input, Button, Row } from '../components/UI.jsx';
 
 export default function MyProfile({ currentUser, onRestoreDeals }) {
@@ -22,8 +22,8 @@ export default function MyProfile({ currentUser, onRestoreDeals }) {
       const users = await loadUsers();
       const me    = users.find(x => x.id === currentUser.id);
       if (!me) throw new Error('Utilisateur introuvable.');
-      const oldHash = await hashPassword(oldPwd, me.salt);
-      if (oldHash !== me.hash) throw new Error('Ancien mot de passe incorrect.');
+      const check = await verifyPassword(me, oldPwd);
+      if (!check.ok) throw new Error('Ancien mot de passe incorrect.');
       const salt = genSalt();
       const hash = await hashPassword(newPwd, salt);
       await saveUsers(users.map(x => x.id === me.id ? { ...x, salt, hash } : x));

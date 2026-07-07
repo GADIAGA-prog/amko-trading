@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Lock, UserPlus, Eye, EyeOff, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { SESSION_TIMEOUT_MIN } from '../constants.js';
-import { loadUsers, saveUsers, saveSession, genSalt, hashPassword } from './authHelpers.js';
+import { loadUsers, saveUsers, saveSession, genSalt, hashPassword, verifyPassword } from './authHelpers.js';
 import { Field, Input, Button } from '../components/UI.jsx';
 import { AmkoLogo } from '../components/Logo.jsx';
 
@@ -59,12 +59,15 @@ export default function AuthScreen({ onAuth }) {
         const found = users.find(x => x.username === u);
         if (!found) throw new Error('Identifiant ou mot de passe incorrect.');
         if (!found.active) throw new Error("Compte désactivé. Contactez l'administrateur.");
-        const hash = await hashPassword(password, found.salt);
-        if (hash !== found.hash) throw new Error('Identifiant ou mot de passe incorrect.');
-        const updated = users.map(x => x.id === found.id ? { ...x, lastLogin: new Date().toISOString() } : x);
+        const check = await verifyPassword(found, password);
+        if (!check.ok) throw new Error('Identifiant ou mot de passe incorrect.');
+        let patched = { ...found, lastLogin: new Date().toISOString() };
+        // Migration transparente : ancien hash SHA-256 → PBKDF2 au premier login réussi
+        if (check.needsRehash) patched.hash = await hashPassword(password, found.salt);
+        const updated = users.map(x => x.id === found.id ? patched : x);
         await saveUsers(updated);
         await saveSession({ userId: found.id, loggedAt: Date.now(), lastActivity: Date.now() });
-        onAuth({ ...found, lastLogin: new Date().toISOString() });
+        onAuth(patched);
       }
     } catch (err) {
       setError(err.message || 'Erreur inattendue.');

@@ -4,7 +4,7 @@ import {
   DollarSign, Anchor, BarChart3, FileCheck2, ShieldAlert, Globe,
   Activity, Layers, Lightbulb, Users, User, LogOut, Moon, Sun,
   FileSpreadsheet, RefreshCw, ClipboardList, Zap, Package, Bot, ShieldCheck,
-  ChevronDown, Landmark, Flame, Scale, Gauge,
+  ChevronDown, Landmark, Flame, Scale, Gauge, History,
 } from 'lucide-react';
 
 import { ROLES, SESSION_TIMEOUT_MIN } from './constants.js';
@@ -43,11 +43,13 @@ import FxForward           from './modules/FxForward.jsx';
 import ICEBoard            from './modules/ICEBoard.jsx';
 import PositionBook         from './modules/PositionBook.jsx';
 import DealCockpit          from './modules/DealCockpit.jsx';
+import Blotter              from './modules/Blotter.jsx';
+import { logAction }        from './utils/auditLog.js';
 
 const TAB_SECTION_MAP = {
   advisor: 'main', 'deal-manager-agent': 'main', dashboard: 'main', position: 'main', market: 'main', curve: 'main',
   'ice-board': 'main',
-  cockpit: 'deals', deals: 'deals', 'new-deal': 'deals', lots: 'deals', optimizer: 'deals',
+  cockpit: 'deals', deals: 'deals', 'new-deal': 'deals', lots: 'deals', optimizer: 'deals', blotter: 'deals',
   hedging: 'tools', pricing: 'tools', freight: 'tools', pnl: 'tools', lc: 'tools',
   risk: 'tools', 'fx-pricing': 'tools', 'fx-forward': 'tools', spreads: 'tools', rolling: 'tools',
   'platts-board': 'tools', platts: 'tools',
@@ -215,14 +217,20 @@ export default function TradingPlatform() {
   const isViewer = currentUser?.role === 'viewer';
   const isAdmin  = currentUser?.role === 'admin';
 
+  // Journal d'audit (blotter) — trace horodatée de chaque action métier.
+  const audit = (action, dealId, label) => logAction(currentUser?.id, { action, dealId, label });
+
   // ── Deal handlers ─────────────────────────────────────────────
   const saveDeal = (deal) => {
     if (isViewer) { alert('Les utilisateurs Viewer ne peuvent pas créer ou modifier de deals.'); return; }
+    const exists = deals.some(d => d.id === deal.id);
     setDeals(ds => {
       const idx = ds.findIndex(d => d.id === deal.id);
       if (idx >= 0) { const copy = [...ds]; copy[idx] = deal; return copy; }
       return [...ds, deal];
     });
+    audit(exists ? 'updated' : 'created', deal.id,
+      `${deal.dealType === 'sell' ? 'Vente' : 'Achat'} ${deal.quantity || '?'} MT — ${deal.counterparty || '?'}`);
     setEditingDeal(null);
     navigateTo('deals');
   };
@@ -230,6 +238,7 @@ export default function TradingPlatform() {
   const deleteDeal = (id) => {
     if (isViewer) { alert('Les utilisateurs Viewer ne peuvent pas supprimer de deals.'); return; }
     setDeals(ds => ds.filter(d => d.id !== id));
+    audit('deleted', id, 'Deal supprimé');
   };
 
   const editDeal = (d) => {
@@ -241,6 +250,7 @@ export default function TradingPlatform() {
     if (isViewer) { alert('Les utilisateurs Viewer ne peuvent pas créer de deals.'); return; }
     const newDeal = { ...d, id: uid(), status: 'open', createdAt: todayISO(), notes: `[Dupliqué de ${d.id}] ${d.notes || ''}`.trim() };
     setDeals(ds => [...ds, newDeal]);
+    audit('duplicated', newDeal.id, `Dupliqué depuis ${d.id}`);
     setEditingDeal(newDeal);
     navigateTo('new-deal');
   };
@@ -249,48 +259,87 @@ export default function TradingPlatform() {
     setDeals(existing => {
       const existingIds = new Set(existing.map(d => d.id));
       const fresh = imported.filter(d => !existingIds.has(d.id));
+      audit('import', null, `${fresh.length} deal(s) importé(s) depuis JSON`);
       return [...existing, ...fresh];
     });
   };
 
-  const restoreDeals = (imported) => { setDeals(imported); };
+  const restoreDeals = (imported) => {
+    setDeals(imported);
+    audit('restore', null, `Restauration complète : ${imported.length} deal(s)`);
+  };
 
   // Mise à jour partielle d'un deal (statut depuis le cockpit, etc.)
   const updateDealFields = (dealId, patch) => {
     if (isViewer) { alert('Les utilisateurs Viewer ne peuvent pas modifier de deals.'); return; }
     setDeals(ds => ds.map(d => d.id === dealId ? { ...d, ...patch } : d));
+    if (patch.status) audit('status', dealId, `Statut → ${patch.status}`);
   };
 
   // ── Sub-module save handlers ──────────────────────────────────
   const setMarketPrice      = (key, val) => setMarketPrices(prev => ({ ...prev, [key]: val }));
-  const saveFreight         = (dealId, freightData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: freightData } : d));
+  const saveFreight         = (dealId, freightData) => {
+    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: freightData } : d));
+    audit('freight', dealId, `Fret sauvegardé : ${Math.round(freightData.totalFreight || 0).toLocaleString('fr-FR')} $`);
+  };
+  // Pas d'audit sur saveLots : appelé à chaque frappe dans le module Lots.
   const saveLots            = (dealId, lots) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, lots } : d));
-  const saveHedge           = (dealId, hedgeData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, hedging: hedgeData, hedgeRatio: hedgeData.hedgeRatio } : d));
-  const saveRiskMatrix      = (dealId, riskData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, riskMatrix: riskData } : d));
-  const savePnLFreight      = (dealId, freightAmount) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: { ...(d.freight || {}), totalFreight: freightAmount } } : d));
-  const savePnL             = (dealId, pnlData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pnl: pnlData } : d));
-  const saveFxHedge         = (dealId, fxData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, fxHedge: fxData } : d));
-  const saveLCCheck         = (dealId, lcData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, lcCheck: lcData } : d));
+  const saveHedge           = (dealId, hedgeData) => {
+    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, hedging: hedgeData, hedgeRatio: hedgeData.hedgeRatio } : d));
+    audit('hedge', dealId, `Hedge validé : ${hedgeData.actionLabel || hedgeData.direction} — ${hedgeData.validatedLots} lot(s) ${String(hedgeData.contractName || '').split('—')[0].trim()}`);
+  };
+  const saveRiskMatrix      = (dealId, riskData) => {
+    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, riskMatrix: riskData } : d));
+    audit('risk', dealId, `Analyse risques : score ${riskData.totalScore} — ${riskData.level} — ${riskData.status}`);
+  };
+  const savePnLFreight      = (dealId, freightAmount) => {
+    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, freight: { ...(d.freight || {}), totalFreight: freightAmount } } : d));
+    audit('freight', dealId, `Fret saisi depuis P&L : ${Math.round(freightAmount).toLocaleString('fr-FR')} $`);
+  };
+  const savePnL             = (dealId, pnlData) => {
+    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pnl: pnlData } : d));
+    audit('pnl', dealId, `P&L validé : marge nette ${Math.round(pnlData.pnl3).toLocaleString('fr-FR')} $ (${(pnlData.pnl3PerMT ?? 0).toFixed(2)} $/MT)`);
+  };
+  const saveFxHedge         = (dealId, fxData) => {
+    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, fxHedge: fxData } : d));
+    audit('fx', dealId, `Couverture FX : ${fxData.instrument} ${fxData.ccyFor}/${fxData.ccyDom} — résultat ${Math.round(fxData.fxResult || 0).toLocaleString('fr-FR')} $`);
+  };
+  const saveLCCheck         = (dealId, lcData) => {
+    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, lcCheck: lcData } : d));
+    audit('lc', dealId, `LC vérifiée : ${lcData.done}/${lcData.total} champs MT700`);
+  };
   // Reporte le prix moyen pondéré des lots comme prix de la jambe du deal.
-  const pushDealLegPrice    = (dealId, price) => setDeals(ds => ds.map(d => {
-    if (d.id !== dealId) return d;
-    const p = String(Math.round(price * 100) / 100);
-    const leg = d.dealType === 'sell' ? { salePrice: p } : { purchasePrice: p };
-    return { ...d, estimatedPrice: p, ...leg };
-  }));
-  const savePricingValidation = (dealId, pvData) => setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pricingValidation: pvData } : d));
-  const savePricing         = (dealId, pricingData) => setDeals(ds => ds.map(d => {
-    if (d.id !== dealId) return d;
-    const fp = String(pricingData.finalPrice);
-    const leg = d.dealType === 'sell' ? { salePrice: fp } : { purchasePrice: fp };
-    return { ...d, pricing: pricingData, estimatedPrice: fp, ...leg };
-  }));
-  const pushMopToDeal       = (dealId, plattsCode, priceBbl) => setDeals(ds => ds.map(d => {
-    if (d.id !== dealId) return d;
-    const p = String(Math.round(priceBbl * 1000) / 1000);
-    const leg = d.dealType === 'sell' ? { salePrice: p } : { purchasePrice: p };
-    return { ...d, estimatedPrice: p, plattsCode, ...leg };
-  }));
+  const pushDealLegPrice    = (dealId, price) => {
+    setDeals(ds => ds.map(d => {
+      if (d.id !== dealId) return d;
+      const p = String(Math.round(price * 100) / 100);
+      const leg = d.dealType === 'sell' ? { salePrice: p } : { purchasePrice: p };
+      return { ...d, estimatedPrice: p, ...leg };
+    }));
+    audit('price', dealId, `Prix moyen pondéré des lots → jambe du deal : ${Math.round(price * 100) / 100} $/MT`);
+  };
+  const savePricingValidation = (dealId, pvData) => {
+    setDeals(ds => ds.map(d => d.id === dealId ? { ...d, pricingValidation: pvData } : d));
+    audit('fx-pricing', dealId, `Validation FX pricing : ${pvData.verdict?.status}${pvData.economics?.netMarginForward != null ? ` — marge fwd ${Math.round(pvData.economics.netMarginForward).toLocaleString('fr-FR')} ${pvData.marginCurrency || 'USD'}` : ''}`);
+  };
+  const savePricing         = (dealId, pricingData) => {
+    setDeals(ds => ds.map(d => {
+      if (d.id !== dealId) return d;
+      const fp = String(pricingData.finalPrice);
+      const leg = d.dealType === 'sell' ? { salePrice: fp } : { purchasePrice: fp };
+      return { ...d, pricing: pricingData, estimatedPrice: fp, ...leg };
+    }));
+    audit('pricing', dealId, `Pricing sauvegardé : ${pricingData.finalPrice} $/MT (${pricingData.marker})`);
+  };
+  const pushMopToDeal       = (dealId, plattsCode, priceBbl) => {
+    setDeals(ds => ds.map(d => {
+      if (d.id !== dealId) return d;
+      const p = String(Math.round(priceBbl * 1000) / 1000);
+      const leg = d.dealType === 'sell' ? { salePrice: p } : { purchasePrice: p };
+      return { ...d, estimatedPrice: p, plattsCode, ...leg };
+    }));
+    audit('price', dealId, `MOP Platts ${plattsCode} → jambe du deal : ${Math.round(priceBbl * 1000) / 1000} $/MT`);
+  };
 
   // ── Gardes ───────────────────────────────────────────────────
   if (!authChecked) {
@@ -319,6 +368,7 @@ export default function TradingPlatform() {
     ...(!isViewer ? [{ id: 'new-deal', label: 'Nouveau deal', icon: FilePlus2, section: 'deals' }] : []),
     { id: 'lots',      label: 'Lots & cargaisons', icon: Package,         section: 'deals' },
     { id: 'optimizer', label: 'Optimiseur',        icon: Lightbulb,       section: 'deals' },
+    { id: 'blotter',   label: 'Blotter / Journal', icon: History,         section: 'deals' },
     { id: 'hedging',   label: 'Hedging',           icon: TrendingUp,      section: 'tools' },
     { id: 'pricing',   label: 'Pricing',           icon: DollarSign,      section: 'tools' },
     { id: 'freight',   label: 'Fret (WS)',         icon: Anchor,          section: 'tools' },
@@ -442,9 +492,10 @@ export default function TradingPlatform() {
             {activeTab === 'curve'     && <ForwardCurve />}
             {activeTab === 'cockpit'   && (
               <DealCockpit deals={deals} marketPrices={marketPrices} initialDealId={focusDealId}
-                onOpenModule={openDealIn} onEdit={editDeal} isViewer={isViewer}
+                onOpenModule={openDealIn} onEdit={editDeal} isViewer={isViewer} userId={currentUser.id}
                 onUpdateStatus={(id, status) => updateDealFields(id, { status })} />
             )}
+            {activeTab === 'blotter'   && <Blotter userId={currentUser.id} deals={deals} isAdmin={isAdmin} onOpenDeal={(id) => openDealIn('cockpit', id)} />}
             {activeTab === 'deals'     && <DealsList deals={deals} onEdit={editDeal} onDelete={deleteDeal} onDuplicate={duplicateDeal} onImportDeals={importDeals} onOpen={(d) => openDealIn('cockpit', d.id)} />}
             {activeTab === 'new-deal' && !isViewer && (
               <NewDeal onSave={saveDeal} editingDeal={editingDeal}
