@@ -9,3 +9,8 @@ html, body, #root {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+.ppt-login {
+  background: radial-gradient(ellipse at 12% 12%, #344c5b 0%, transparent 48%), radial-gradient(ellipse at 90% 90%, #51472e66 0%, transparent 42%), #091720;
+}
+::selection { background: #e6d8b6; color: #102332; }

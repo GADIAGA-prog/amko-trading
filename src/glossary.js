@@ -1,6 +1,6 @@
-// glossary.js — Glossaire officiel des notions de la plateforme AMKO Trading.
+// glossary.js — Glossaire officiel des notions de la plateforme PETROLEUM PRODUCTS TRADING.
 // Source unique utilisée par le Conseiller (outil expliquerNotion).
-// Chaque entrée : définition courte, usage concret dans AMKO, exemple chiffré.
+// Chaque entrée : définition courte, usage concret dans PETROLEUM PRODUCTS TRADING, exemple chiffré.
 
 export const GLOSSARY = [
   // ── PRICING ─────────────────────────────────────────────────────────────
@@ -248,7 +248,7 @@ export function lookupNotion(query) {
 
   if (!scored.length) {
     return {
-      error: `Notion « ${query} » absente du glossaire AMKO.`,
+      error: `Notion « ${query} » absente du glossaire PETROLEUM PRODUCTS TRADING.`,
       notionsDisponibles: GLOSSARY.map(g => g.terme),
       note: "Explique avec tes connaissances de trader senior en précisant que la définition ne vient pas du glossaire, et propose les notions proches ci-dessus.",
     };

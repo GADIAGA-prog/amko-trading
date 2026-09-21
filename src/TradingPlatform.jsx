@@ -395,9 +395,9 @@ export default function TradingPlatform() {
 
         {/* ── Sidebar ─────────────────────────────────────────── */}
         <aside className="w-60 bg-slate-900 text-white flex flex-col flex-shrink-0">
-          <div className="px-4 py-5 bg-white dark:bg-slate-800 border-b-2 border-amber-500">
+          <div className="px-4 py-6 bg-slate-900 border-b border-brand-500/40">
             <div className="flex items-center justify-center">
-              <AmkoLogo size="md" showTagline={true} variant="light" />
+              <AmkoLogo size="md" showTagline={true} variant="dark" />
             </div>
           </div>
 
@@ -413,8 +413,8 @@ export default function TradingPlatform() {
                     onClick={() => toggleSection(sectionKey)}
                     className={`w-full flex items-center justify-between px-4 py-2 text-xs uppercase font-semibold transition
                       ${hasActive
-                        ? 'text-amber-400 bg-slate-800/60'
-                        : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/40'
+                        ? 'text-brand-300 bg-slate-800/60'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
                       }`}>
                     <span>{section.label}</span>
                     <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-0' : '-rotate-90'}`} />
@@ -433,7 +433,7 @@ export default function TradingPlatform() {
                           onClick={() => { if (n.id === 'new-deal') setEditingDeal(null); navigateTo(n.id); }}
                           className={`w-full flex items-center gap-3 pr-4 py-2 text-sm transition ${
                             active
-                              ? 'bg-brand-700 text-white border-l-4 border-amber-400 pl-5'
+                              ? 'bg-brand-700 text-white border-l-4 border-brand-300 pl-5'
                               : 'text-slate-300 hover:bg-slate-800 border-l-4 border-transparent pl-6'
                           }`}>
                           <Icon className="w-4 h-4 flex-shrink-0" />
@@ -452,7 +452,7 @@ export default function TradingPlatform() {
             <button onClick={() => setDarkMode(d => !d)}
               className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 rounded-md transition">
               {darkMode
-                ? <><Sun className="w-4 h-4 text-amber-400" /> Mode clair</>
+                ? <><Sun className="w-4 h-4 text-brand-300" /> Mode clair</>
                 : <><Moon className="w-4 h-4 text-slate-400" /> Mode sombre</>}
             </button>
             <div className="flex items-center gap-2">

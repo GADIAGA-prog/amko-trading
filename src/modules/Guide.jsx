@@ -7,25 +7,25 @@ import { Button } from '../components/UI.jsx';
 // « document ») ET imprimé tel quel. Toute mise à jour se fait ici, une fois.
 // ─────────────────────────────────────────────────────────────────────────────
 const NOTICE_HTML = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
-<title>AMKO Trading — Notice d'utilisation</title>
+<title>PETROLEUM PRODUCTS TRADING — Notice d'utilisation</title>
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.55; color: #0f172a; margin: 0; padding: 28px 40px; background: #fff; }
-  h1 { font-size: 17pt; border-bottom: 3px solid #598223; padding-bottom: 8px; margin: 0 0 4px; }
+  h1 { font-size: 17pt; border-bottom: 3px solid #806328; padding-bottom: 8px; margin: 0 0 4px; }
   .sub { color: #64748b; margin-bottom: 22px; font-size: 9.5pt; }
-  h2 { font-size: 12.5pt; color: #598223; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin: 26px 0 10px; }
+  h2 { font-size: 12.5pt; color: #806328; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin: 26px 0 10px; }
   h3 { font-size: 10.5pt; margin: 16px 0 6px; color: #0f172a; }
   table { width: 100%; border-collapse: collapse; margin: 8px 0; }
   th, td { border: 1px solid #cbd5e1; padding: 5px 8px; text-align: left; vertical-align: top; }
   th { background: #f1f5f9; font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.4px; }
   td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .step { border: 1px solid #D2E9A9; border-left: 4px solid #598223; border-radius: 6px; padding: 10px 14px; margin: 10px 0; background: #f8fafc; page-break-inside: avoid; }
-  .step b.t { color: #598223; }
+  .step { border: 1px solid #E6D8B6; border-left: 4px solid #806328; border-radius: 6px; padding: 10px 14px; margin: 10px 0; background: #f8fafc; page-break-inside: avoid; }
+  .step b.t { color: #806328; }
   .path { display: inline-block; background: #1e293b; color: #fff; border-radius: 4px; padding: 1px 8px; font-size: 8.5pt; font-family: Consolas, monospace; }
   .val { background: #fef3c7; border-radius: 3px; padding: 0 4px; font-weight: 600; white-space: nowrap; }
   .res { background: #dcfce7; border-radius: 3px; padding: 0 4px; font-weight: 700; white-space: nowrap; }
   .warn { background: #fff7ed; border: 1px solid #fdba74; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
-  .tip  { background: #F5FAEB; border: 1px solid #B5DB79; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
+  .tip  { background: #FAF7EF; border: 1px solid #D5BE87; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
   ul, ol { margin: 6px 0; padding-left: 22px; }
   li { margin: 3px 0; }
   .toc { columns: 2; font-size: 9.5pt; }
@@ -35,7 +35,7 @@ const NOTICE_HTML = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
   @media print { body { padding: 0; } h2 { page-break-after: avoid; } .step, table { page-break-inside: avoid; } }
 </style></head><body>
 
-<h1>AMKO Trading — Notice d'utilisation</h1>
+<h1>PETROLEUM PRODUCTS TRADING — Notice d'utilisation</h1>
 <p class="sub">Plateforme de trading physique de produits pétroliers — version 2.0 · juillet 2026</p>
 
 <h2>Sommaire</h2>
@@ -50,7 +50,7 @@ const NOTICE_HTML = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
 </div>
 
 <h2>1. Présentation &amp; philosophie</h2>
-<p>AMKO Trading couvre <b>tout le cycle de vie d'un deal physique</b> : capture, validation des risques, pricing sur Platts (MOP), couverture prix (futures) et devise (forward/option), fret, lettre de crédit, P&amp;L à 3 niveaux, puis suivi consolidé du portefeuille.</p>
+<p>PETROLEUM PRODUCTS TRADING couvre <b>tout le cycle de vie d'un deal physique</b> : capture, validation des risques, pricing sur Platts (MOP), couverture prix (futures) et devise (forward/option), fret, lettre de crédit, P&amp;L à 3 niveaux, puis suivi consolidé du portefeuille.</p>
 <p>Deux écrans jouent le rôle de <b>postes de pilotage</b> :</p>
 <ul>
   <li><b>Cockpit deal</b> — la vue 360° d'UN deal : pipeline de vie, checklist « bon deal », échéancier, alertes, verdict GO/NO-GO, historique et deal ticket imprimable. <i>Réflexe : après chaque action sur un deal, repassez par son cockpit.</i></li>
@@ -122,7 +122,7 @@ Le marché a baissé de ~146 $/MT : la perte sur le physique sera compensée par
 <div class="step"><b class="t">Étape H — Calculer le fret.</b> <span class="path">Fret (WS)</span> : deal lié. Mode Lumpsum <span class="val">450 000 $</span> (≈ 30 $/MT pour 15 000 MT) → <b>Sauvegarder dans le deal</b>.<br>
 <i>Pour mémoire, en mode Worldscale :</i> <span class="formula">fret = flat rate × WS×(1−com.) /100 × tonnage</span>. Ex. flat 18,46 $/t, WS 80, commission 1,25 %, 30 000 t → <span class="formula">18,46 × 79/100 × 30 000</span> = 437 502 $.</div>
 
-<div class="step"><b class="t">Étape I — Créer le deal de VENTE.</b> <span class="path">Nouveau deal</span> : Type <span class="val">Vente</span>, Client Lomé (Togo), DAP, livraison <span class="val">12/06/2026</span>. MOP vente B/L→livraison <span class="val">1 076,24 $/MT</span> + prime AMKO <span class="val">+139 $/MT</span> → bouton <b>« → Prix vente »</b> : <span class="res">1 215,24 $/MT</span>. Paiement <span class="val">J+30 (LC irrévocable)</span>. Hedge ratio <span class="val">0 %</span> : c'est un back-to-back, le risque prix est déjà porté et couvert côté achat.</div>
+<div class="step"><b class="t">Étape I — Créer le deal de VENTE.</b> <span class="path">Nouveau deal</span> : Type <span class="val">Vente</span>, Client Lomé (Togo), DAP, livraison <span class="val">12/06/2026</span>. MOP vente B/L→livraison <span class="val">1 076,24 $/MT</span> + prime PETROLEUM PRODUCTS TRADING <span class="val">+139 $/MT</span> → bouton <b>« → Prix vente »</b> : <span class="res">1 215,24 $/MT</span>. Paiement <span class="val">J+30 (LC irrévocable)</span>. Hedge ratio <span class="val">0 %</span> : c'est un back-to-back, le risque prix est déjà porté et couvert côté achat.</div>
 
 <div class="step"><b class="t">Étape J — Couvrir le change (client payé en XOF).</b> <span class="path">Couverture FX</span> : deal de vente lié.
 <ul>
@@ -160,7 +160,7 @@ Rappel XOF : la parité EUR/XOF est fixe (655,957) — le vrai risque est EUR/US
 <h2>5. Le Conseiller (chat)</h2>
 <ul>
   <li>Le Conseiller lit <b>vos données réelles</b> (deals, cockpit, book, prix, Platts) via des outils en <b>lecture seule</b> — il ne modifie jamais rien, il recommande et explique.</li>
-  <li><b>Professeur intégré :</b> il explique toutes les notions de la plateforme à partir du glossaire officiel (~50 notions : MOP, basis risk, contango, Worldscale, démurrage, LC/MT700/UCP 600, points de terme, P&amp;L 3 niveaux…) — définition, usage dans AMKO, exemple chiffré, pièges. Demandez simplement <i>« c'est quoi… ? »</i>.</li>
+  <li><b>Professeur intégré :</b> il explique toutes les notions de la plateforme à partir du glossaire officiel (~50 notions : MOP, basis risk, contango, Worldscale, démurrage, LC/MT700/UCP 600, points de terme, P&amp;L 3 niveaux…) — définition, usage dans PETROLEUM PRODUCTS TRADING, exemple chiffré, pièges. Demandez simplement <i>« c'est quoi… ? »</i>.</li>
   <li><b>Conseil selon le marché :</b> il analyse la tendance des cotations Platts importées (variation 5/20 séances, volatilité), la croise avec votre exposition ouverte et chiffre l'impact par scénario avant de recommander (hedger N lots, rouler, repricer, couvrir le change… ou ne rien faire).</li>
   <li>Exemples de questions efficaces : <i>« Conseille-moi selon le marché actuel »</i> · <i>« Explique-moi le basis risk avec un exemple »</i> · <i>« Analyse mon book de position »</i> · <i>« Que manque-t-il au deal D… pour signer ? »</i> · <i>« Compare forward et option pour couvrir 18 M USD/XOF sur 42 jours »</i>.</li>
   <li>Donnez l'ID du deal quand vous le connaissez ; sinon le Conseiller liste vos deals lui-même. Pour un conseil marché pertinent, importez le Platts du jour au préalable.</li>
@@ -191,7 +191,7 @@ Rappel XOF : la parité EUR/XOF est fixe (655,957) — le vrai risque est EUR/US
   <tr><td>Un utilisateur ne peut pas créer de deal</td><td>Rôle Viewer = lecture seule. Un admin peut changer le rôle dans Utilisateurs.</td></tr>
 </table>
 
-<div class="footer">AMKO TRADING Platform — notice v2.0 · juillet 2026 · générée par la plateforme</div>
+<div class="footer">PETROLEUM PRODUCTS TRADING — notice v2.0 · juillet 2026 · générée par la plateforme</div>
 </body></html>`;
 
 export default function Guide() {
@@ -220,7 +220,7 @@ export default function Guide() {
 
       <iframe
         ref={frameRef}
-        title="Notice d'utilisation AMKO Trading"
+        title="Notice d'utilisation PETROLEUM PRODUCTS TRADING"
         srcDoc={NOTICE_HTML}
         className="w-full h-[78vh] bg-white rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm"
       />

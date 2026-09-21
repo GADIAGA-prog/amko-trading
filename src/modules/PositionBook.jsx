@@ -56,7 +56,7 @@ export default function PositionBook({ deals = [], marketPrices = {}, setMarketP
     const wb = XLSX.utils.book_new();
 
     const synthese = XLSX.utils.aoa_to_sheet([
-      ['AMKO Trading — Book de position', new Date().toISOString().slice(0, 10)],
+      ['PETROLEUM PRODUCTS TRADING — Book de position', new Date().toISOString().slice(0, 10)],
       [],
       ['Deals actifs', s2.dealCount],
       ['Position nette (MT)', Math.round(s2.netMT)],
@@ -113,7 +113,7 @@ export default function PositionBook({ deals = [], marketPrices = {}, setMarketP
     ]);
     XLSX.utils.book_append_sheet(wb, cps, 'Contreparties');
 
-    XLSX.writeFile(wb, `amko-book-position-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `petroleum-products-trading-book-position-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (

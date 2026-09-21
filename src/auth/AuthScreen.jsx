@@ -77,16 +77,16 @@ export default function AuthScreen({ onAuth }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen ppt-login flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-xl p-6 mb-6 flex items-center justify-center shadow-2xl">
-          <AmkoLogo size="xl" showTagline={true} variant="light" />
+        <div className="px-4 py-6 mb-3 flex items-center justify-center">
+          <AmkoLogo size="xl" showTagline={true} variant="dark" />
         </div>
         <p className="text-slate-400 text-xs text-center mb-8 uppercase tracking-widest">
-          Petroleum Trading Platform
+          Négoce • Couverture • Performance
         </p>
 
-        <div className="bg-white rounded-xl shadow-2xl overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border-t-2 border-brand-400">
           <div className="px-6 pt-6 pb-4 border-b border-slate-200">
             <div className="flex items-center gap-2 mb-2">
               {mode === 'login'

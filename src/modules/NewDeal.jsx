@@ -135,7 +135,7 @@ export default function NewDeal({ onSave, editingDeal, onCancel }) {
       vessel: 'MR2 (TBN)',
       inspector: 'SGS',
       status: 'contracted',
-      notes: 'Gasoil 0,1%S DAP Lomé. Livraison: 12/06/2026. Pricing AMKO: Platts MED Gasoil 0,1%S moy. 19 JO BL→livraison (18/05→12/06/2026): 1 076,24 USD/MT. Prime AMKO: +139 USD/MT → Prix vente: 1 215,24 USD/MT. Paiement client en XOF J+30 JO (24/07/2026). FX forward USD/XOF requis (tenor 42j). Marge nette avec hedge ICE: +100,72 USD/MT (+1 510 726 USD).',
+      notes: 'Gasoil 0,1%S DAP Lomé. Livraison: 12/06/2026. Pricing PETROLEUM PRODUCTS TRADING: Platts MED Gasoil 0,1%S moy. 19 JO BL→livraison (18/05→12/06/2026): 1 076,24 USD/MT. Prime PETROLEUM PRODUCTS TRADING: +139 USD/MT → Prix vente: 1 215,24 USD/MT. Paiement client en XOF J+30 JO (24/07/2026). FX forward USD/XOF requis (tenor 42j). Marge nette avec hedge ICE: +100,72 USD/MT (+1 510 726 USD).',
     }));
   };
 

@@ -37,7 +37,7 @@ export default function Blotter({ userId, deals = [], onOpenDeal, isAdmin }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `amko-blotter-${today}.csv`;
+    a.download = `petroleum-products-trading-blotter-${today}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

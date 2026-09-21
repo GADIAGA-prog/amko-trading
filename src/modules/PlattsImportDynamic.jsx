@@ -151,7 +151,7 @@ function exportStoreExcel() {
   const wb = utils.book_new();
   utils.book_append_sheet(wb, utils.aoa_to_sheet(rows), 'Platts_Consolide');
   utils.book_append_sheet(wb, utils.aoa_to_sheet(descRows), 'Produits');
-  writeFile(wb, `AMKO_Platts_Consolide_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  writeFile(wb, `PETROLEUM_PRODUCTS_TRADING_Platts_Consolide_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
 export default function PlattsImportDynamic({ setMarketPrice, onDatasetLoaded }) {

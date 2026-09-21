@@ -87,7 +87,7 @@ function exportCsv(dataset) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `AMKO_Platts_Board_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.download = `PETROLEUM_PRODUCTS_TRADING_Platts_Board_${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }

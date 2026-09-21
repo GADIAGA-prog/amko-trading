@@ -140,8 +140,8 @@ ${deal.notes ? `<h2>Notes</h2><p class="notes">${esc(deal.notes)}</p>` : ''}
 <style>
   * { box-sizing: border-box; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 9.5pt; margin: 1.6cm 1.8cm; color: #0f172a; line-height: 1.45; }
-  h1 { font-size: 14pt; letter-spacing: 1px; border-bottom: 3px solid #598223; padding-bottom: 6px; margin: 0 0 8px; }
-  h2 { font-size: 10.5pt; text-transform: uppercase; letter-spacing: 0.5px; color: #598223; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin: 16px 0 6px; }
+  h1 { font-size: 14pt; letter-spacing: 1px; border-bottom: 3px solid #806328; padding-bottom: 6px; margin: 0 0 8px; }
+  h2 { font-size: 10.5pt; text-transform: uppercase; letter-spacing: 0.5px; color: #806328; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin: 16px 0 6px; }
   h3 { font-size: 9.5pt; margin: 10px 0 4px; }
   table { width: 100%; border-collapse: collapse; }
   td, th { padding: 3px 6px; vertical-align: top; }
@@ -161,7 +161,7 @@ ${deal.notes ? `<h2>Notes</h2><p class="notes">${esc(deal.notes)}</p>` : ''}
 </style>
 </head><body>${html}
 <div style="text-align:center;margin-top:24px;font-size:7.5pt;color:#94a3b8;border-top:1px solid #e2e8f0;padding-top:5px;">
-  Deal ticket généré par AMKO TRADING Platform — ${new Date().toLocaleString('fr-FR')}
+  Deal ticket généré par PETROLEUM PRODUCTS TRADING — ${new Date().toLocaleString('fr-FR')}
 </div>
 <script>window.onload = function(){ window.print(); }<\/script>
 </body></html>`);

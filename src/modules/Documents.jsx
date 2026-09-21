@@ -62,7 +62,7 @@ function printDoc(html, title) {
 </style>
 </head><body>${html}
 <div style="text-align:center;margin-top:30px;font-size:8pt;color:#999;border-top:1px solid #ccc;padding-top:6px;">
-  Document généré par AMKO TRADING Platform — ${new Date().toLocaleString('fr-FR')}
+  Document généré par PETROLEUM PRODUCTS TRADING — ${new Date().toLocaleString('fr-FR')}
 </div>
 <script>window.onload = function(){ window.print(); }<\/script>
 </body></html>`);
@@ -726,7 +726,7 @@ export default function Documents({ deals }) {
               <CardHeader icon={FileText} title="Acheteur (Buyer)" />
               <CardBody>
                 <div className="space-y-3">
-                  <Field label="Société"><Input value={form.buyerCompany}        onChange={e => upd('buyerCompany', e.target.value)} placeholder="AMKO TRADING SA" /></Field>
+                  <Field label="Société"><Input value={form.buyerCompany}        onChange={e => upd('buyerCompany', e.target.value)} placeholder="PETROLEUM PRODUCTS TRADING" /></Field>
                   <Field label="Adresse"><Input value={form.buyerAddress}        onChange={e => upd('buyerAddress', e.target.value)} placeholder="Adresse complète" /></Field>
                   <Field label="N° d'enregistrement"><Input value={form.buyerRegNo} onChange={e => upd('buyerRegNo', e.target.value)} /></Field>
                   <Field label="Signataire autorisé"><Input value={form.buyerSignatoryName} onChange={e => upd('buyerSignatoryName', e.target.value)} placeholder="Nom complet" /></Field>

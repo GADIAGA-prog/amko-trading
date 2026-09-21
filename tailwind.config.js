@@ -8,20 +8,20 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Palette de marque AMKO — vert pomme du logo (#8DC63F),
-        // l'orange flamme est couvert par la palette `amber` standard.
+        // Petroleum Products Trading — matte gold, midnight navy and ivory.
+        slate: { 50: '#FAF9F6', 100: '#F3F1EC', 200: '#E4E4E0', 300: '#CAD0D2', 400: '#96A4AD', 500: '#667985', 600: '#4C626F', 700: '#344C5B', 800: '#203847', 900: '#102332', 950: '#091720' },
         brand: {
-          50:  '#F5FAEB',
-          100: '#E8F4D3',
-          200: '#D2E9A9',
-          300: '#B5DB79',
-          400: '#9DD04F',
-          500: '#8DC63F',
-          600: '#74A930',
-          700: '#598223',
-          800: '#48691E',
-          900: '#3C5719',
-          950: '#1E2F0B',
+          50:  '#FAF7EF',
+          100: '#F2EBD8',
+          200: '#E6D8B6',
+          300: '#D5BE87',
+          400: '#C5A765',
+          500: '#B99A55',
+          600: '#987936',
+          700: '#806328',
+          800: '#685022',
+          900: '#55421E',
+          950: '#302510',
         },
       },
     },
