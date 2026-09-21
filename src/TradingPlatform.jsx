@@ -394,8 +394,8 @@ export default function TradingPlatform() {
       <div className="min-h-screen bg-slate-100 dark:bg-slate-950 flex">
 
         {/* ── Sidebar ─────────────────────────────────────────── */}
-        <aside className="w-60 bg-slate-900 text-white flex flex-col flex-shrink-0">
-          <div className="px-4 py-6 bg-slate-900 border-b border-brand-500/40">
+        <aside className="w-60 bg-[#123C3A] text-[#F5F2EA] flex flex-col flex-shrink-0">
+          <div className="px-4 py-6 bg-[#123C3A] border-b border-[#C6AA76]/30">
             <div className="flex items-center justify-center">
               <AmkoLogo size="md" showTagline={true} variant="dark" />
             </div>
@@ -413,8 +413,8 @@ export default function TradingPlatform() {
                     onClick={() => toggleSection(sectionKey)}
                     className={`w-full flex items-center justify-between px-4 py-2 text-xs uppercase font-semibold transition
                       ${hasActive
-                        ? 'text-brand-300 bg-slate-800/60'
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                        ? 'text-[#C6AA76] bg-[#1B4B48]'
+                        : 'text-[#B6C9C3] hover:text-[#F5F2EA] hover:bg-[#1B4B48]'
                       }`}>
                     <span>{section.label}</span>
                     <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-0' : '-rotate-90'}`} />
@@ -433,8 +433,8 @@ export default function TradingPlatform() {
                           onClick={() => { if (n.id === 'new-deal') setEditingDeal(null); navigateTo(n.id); }}
                           className={`w-full flex items-center gap-3 pr-4 py-2 text-sm transition ${
                             active
-                              ? 'bg-brand-700 text-white border-l-4 border-brand-300 pl-5'
-                              : 'text-slate-300 hover:bg-slate-800 border-l-4 border-transparent pl-6'
+                              ? 'bg-[#C6AA76] text-[#123C3A] font-semibold border-l-4 border-[#F5F2EA] pl-5'
+                              : 'text-[#F5F2EA] hover:bg-[#1B4B48] border-l-4 border-transparent pl-6'
                           }`}>
                           <Icon className="w-4 h-4 flex-shrink-0" />
                           <span className="truncate">{n.label}</span>
@@ -448,26 +448,26 @@ export default function TradingPlatform() {
           </nav>
 
           {/* Dark mode + user info */}
-          <div className="border-t border-slate-700 p-4 space-y-3">
+          <div className="border-t border-[#C6AA76]/25 p-4 space-y-3">
             <button onClick={() => setDarkMode(d => !d)}
-              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-slate-300 hover:bg-slate-800 rounded-md transition">
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-[#F5F2EA] hover:bg-[#1B4B48] rounded-md transition">
               {darkMode
-                ? <><Sun className="w-4 h-4 text-brand-300" /> Mode clair</>
-                : <><Moon className="w-4 h-4 text-slate-400" /> Mode sombre</>}
+                ? <><Sun className="w-4 h-4 text-[#C6AA76]" /> Mode clair</>
+                : <><Moon className="w-4 h-4 text-[#B6C9C3]" /> Mode sombre</>}
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-[#1B4B48] flex items-center justify-center text-xs font-bold text-[#F5F2EA] flex-shrink-0">
                 {currentUser.fullName.split(' ').map(s => s[0]).join('').toUpperCase().slice(0, 2)}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-xs font-semibold text-white truncate">{currentUser.fullName}</div>
-                <div className="text-[10px] text-slate-400 truncate">
+                <div className="text-xs font-semibold text-[#F5F2EA] truncate">{currentUser.fullName}</div>
+                <div className="text-[10px] text-[#B6C9C3] truncate">
                   {ROLES[currentUser.role]?.label} • {deals.length} deal(s)
                 </div>
               </div>
             </div>
             <button onClick={logout}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium bg-slate-800 hover:bg-red-700 text-slate-200 hover:text-white rounded-md transition">
+              className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium bg-[#1B4B48] hover:bg-[#285D57] text-[#F5F2EA] hover:text-[#F5F2EA] rounded-md transition">
               <LogOut className="w-3.5 h-3.5" />Se déconnecter
             </button>
           </div>
